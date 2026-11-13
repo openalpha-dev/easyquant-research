@@ -1,0 +1,13 @@
+{
+  "tool": "backtest_portfolio",
+  "title": "A 股 60 日动量前 30，月度等权调仓（加成交额门槛剔除冷门股）",
+  "arguments": {
+    "market": "cn_stock",
+    "condition": "MA(amount, 20) > 5e7",
+    "rank_by": "close / REF(close, 60) - 1",
+    "rank_order": "desc",
+    "top_n": 30,
+    "rebalance": "monthly",
+    "weighting": "equal"
+  }
+}

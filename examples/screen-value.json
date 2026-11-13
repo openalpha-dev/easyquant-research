@@ -1,0 +1,11 @@
+{
+  "tool": "screen",
+  "title": "A 股低估值高股息：市盈率 15 倍以下、股息率 3% 以上，按股息率取前 50",
+  "arguments": {
+    "market": "cn_stock",
+    "condition": "(pe_ttm > 0) * (pe_ttm < 15) * (dv_ttm > 3)",
+    "rank_by": "dv_ttm",
+    "rank_order": "desc",
+    "top_n": 50
+  }
+}

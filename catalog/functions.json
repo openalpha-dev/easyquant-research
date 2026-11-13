@@ -1,0 +1,25 @@
+{
+  "how": "字段名小写、函数名大写。表达式不支持字符串、下标、属性访问和横截面 RANK；「且」用 *，「或」用 MAX(a, b)，条件分支用 IF(条件, 值1, 值2)，空值用 np.nan。",
+  "functions": [
+    { "signature": "MA(x, n) / SMA / EMA(x, n)", "summary": "均线" },
+    { "signature": "STD(x, n) / SUM(x, n) / MEAN(x, n)", "summary": "滚动标准差、求和、均值" },
+    { "signature": "REF(x, n) / DELAY(x, n)", "summary": "n 天前的值" },
+    { "signature": "DELTA(x, n)", "summary": "x - REF(x, n)" },
+    { "signature": "HHV(x, n) / LLV(x, n)", "summary": "n 天最高 / 最低" },
+    { "signature": "TS_RANK(x, n)", "summary": "当天值在自己近 n 天里的百分位" },
+    { "signature": "ZSCORE(x, n)", "summary": "自己近 n 天的时序标准分" },
+    { "signature": "RSI(x, n) / ATR(high, low, close, n) / ADX(high, low, close, n) / CCI(high, low, close, n) / OBV(close, volume)", "summary": "技术指标" },
+    { "signature": "CORR(x, y, n) / COV(x, y, n)", "summary": "滚动相关 / 协方差" },
+    { "signature": "DECAY_LINEAR(x, n) / MAX_DRAWDOWN(x, n)", "summary": "线性衰减加权 / 滚动最大回撤" },
+    { "signature": "CROSS(a, b)", "summary": "当天 a 上穿 b 为 1" },
+    { "signature": "EVERY(cond, n)", "summary": "连续 n 天都满足为 1" },
+    { "signature": "IF(cond, a, b)", "summary": "条件分支；np.nan 表示空值" },
+    { "signature": "ABS / LOG / SQRT / MAX(a, b) / MIN(a, b)", "summary": "数学函数" }
+  ],
+  "examples": [
+    { "idea": "ROE 大于 15% 且站上 60 日线", "condition": "(roe_yearly > 15) * (close > MA(close, 60))" },
+    { "idea": "市盈率 15 倍以下、股息率 3% 以上", "condition": "(pe_ttm > 0) * (pe_ttm < 15) * (dv_ttm > 3)" },
+    { "idea": "流通市值 50 亿到 300 亿", "condition": "(circ_mv > 5e5) * (circ_mv < 3e6)" },
+    { "idea": "近 20 日涨幅最大的 30 只", "rank_by": "close / REF(close, 20) - 1", "top_n": "30" }
+  ]
+}

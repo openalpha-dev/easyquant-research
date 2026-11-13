@@ -1,0 +1,33 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -e '.[dev]'
+      - run: pytest -q
+      - name: examples validate against the tool schemas (offline)
+        run: |
+          python - <<'PY'
+          from easyquant_research import reference as ref
+          bad = []
+          for e in ref.list_examples():
+              doc = ref.get_example(e["name"])
+              issues = ref.validate_arguments(doc["tool"], doc["arguments"])
+              if issues:
+                  bad.append((e["name"], issues))
+          assert not bad, bad
+          print(f"{len(ref.list_examples())} examples valid")
+          PY
+      - name: no real API keys committed
+        run: |
+          if grep -rEn 'eqk_[A-Za-z0-9]{16,}' --include='*.py' --include='*.json' --include='*.md' --include='*.toml' . ; then
+            echo "found what looks like a real API key"; exit 1
+          fi

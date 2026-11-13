@@ -1,0 +1,15 @@
+{
+  "tool": "backtest_timing",
+  "title": "螺纹钢主力连续 20/60 日均线多空：快线在慢线上方做多、下方做空，交叉反向平仓",
+  "arguments": {
+    "code": "RB",
+    "indicators": {
+      "fast": { "type": "SMA", "period": 20 },
+      "slow": { "type": "SMA", "period": 60 }
+    },
+    "entry": { "type": "GT", "left": { "ind": "fast" }, "right": { "ind": "slow" } },
+    "exit": { "type": "CROSS_DOWN", "left": { "ind": "fast" }, "right": { "ind": "slow" } },
+    "short_entry": { "type": "LT", "left": { "ind": "fast" }, "right": { "ind": "slow" } },
+    "short_exit": { "type": "CROSS_UP", "left": { "ind": "fast" }, "right": { "ind": "slow" } }
+  }
+}

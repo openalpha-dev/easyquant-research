@@ -1,0 +1,155 @@
+{
+  "defaults": {
+    "universe": "全 A 股（区间内有日线的全部股票，含退市）",
+    "selection": "符合条件的全部入选，等权",
+    "rebalance": "monthly",
+    "period": "3 年，最长 5 年",
+    "benchmark": "沪深 300（美股标普 500、港股恒生指数）"
+  },
+  "costs_note": "交收、每手、佣金、印花税、滑点等数值由运行时 catalog 与每次回测结果按配置中心实时给出，并随报告冻结；本离线目录只写引擎的能力类口径（固定行为），不写死数值，避免与实际漂移。",
+  "markets": [
+    {
+      "id": "cn_stock",
+      "name": "A 股",
+      "note": "默认市场；选股、组合回测、因子体检、择时回测都支持。",
+      "supports": ["screen", "backtest_portfolio", "factor_report", "backtest_timing", "robustness"],
+      "portfolio_rules": [
+        { "label": "方向", "value": "只做多" },
+        { "label": "成交时点", "value": "用前一交易日收盘后的数据选股，调仓日开盘价成交，先卖后买" },
+        { "label": "涨跌停", "value": "开盘涨停买不进、开盘跌停卖不出；止盈止损按当日收盘价，收盘封跌停卖不出；板幅主板 10%、创业板 / 科创板 20%、北交所 30%，ST 股按 10% 计（2026-07-06 新规前实际为 5%，此前区间的 ST 股是近似）" },
+        { "label": "停牌", "value": "停牌日不交易：买不进的那部分留现金，卖不出的留到下次调仓，不影响用现金买其他标的；退市股按最后收盘价清算" },
+        { "label": "财务数据", "value": "按公告日次日生效（点时口径），不用未来数据" },
+        { "label": "股票池", "value": "区间内有日线的全部 A 股，包含期间退市的股票" },
+        { "label": "价格", "value": "前复权" }
+      ],
+      "timing_rules": [
+        { "label": "方向", "value": "只做多" },
+        { "label": "成交时点", "value": "收盘确认信号，下一交易日开盘成交" },
+        { "label": "涨跌停", "value": "一字涨停（全天封板）买不进、一字跌停卖不出，盘中触板但有成交的照常成交；板幅主板 10%、创业板 / 科创板 20%、北交所 30%，ST 股按 10% 计（2026-07-06 新规前实际为 5%，此前区间的 ST 股是近似）" },
+        { "label": "停牌", "value": "停牌日没有成交" },
+        { "label": "价格", "value": "前复权" }
+      ],
+      "examples": [
+        { "idea": "ROE 大于 15% 且站上 60 日线", "condition": "(roe_yearly > 15) * (close > MA(close, 60))" },
+        { "idea": "市盈率 15 倍以下、股息率 3% 以上", "condition": "(pe_ttm > 0) * (pe_ttm < 15) * (dv_ttm > 3)" },
+        { "idea": "流通市值 50 亿到 300 亿", "condition": "(circ_mv > 5e5) * (circ_mv < 3e6)" },
+        { "idea": "近 20 日涨幅最大的 30 只", "rank_by": "close / REF(close, 20) - 1", "top_n": "30" }
+      ]
+    },
+    {
+      "id": "cn_etf",
+      "name": "场内 ETF",
+      "note": "条件选股与组合回测传 market=cn_etf；择时回测直接填 ETF 代码（如 510300.SH）。不支持因子体检。标的池为全部交易所 ETF（不含货币 ETF，含退市），数据从 2019 年起；2021 年前只有两三百只。",
+      "data_start": "2019",
+      "supports": ["screen", "backtest_portfolio", "backtest_timing", "robustness"],
+      "portfolio_rules": [
+        { "label": "方向", "value": "只做多" },
+        { "label": "交收", "value": "股票型 ETF 为 T+1，跨境、债券、黄金等 ETF 为 T+0；回测里当天买入的当天不卖，按 T+1 处理" },
+        { "label": "成交时点", "value": "用前一交易日收盘后的数据选股，调仓日开盘价成交，先卖后买" },
+        { "label": "涨跌停", "value": "开盘涨停买不进、开盘跌停卖不出；止盈止损按当日收盘价，收盘封跌停卖不出；板幅 10%，跟踪科创板 / 创业板指数的 ETF 为 20%" },
+        { "label": "停牌", "value": "停牌日不交易：买不进的那部分留现金，卖不出的留到下次调仓，不影响用现金买其他标的；退市股按最后收盘价清算" },
+        { "label": "标的池", "value": "区间内有日线的全部交易所 ETF（不含货币 ETF），包含期间退市的" },
+        { "label": "价格", "value": "前复权" }
+      ],
+      "timing_rules": [
+        { "label": "方向", "value": "只做多" },
+        { "label": "成交时点", "value": "收盘确认信号，下一交易日开盘成交" },
+        { "label": "涨跌停", "value": "一字涨停（全天封板）买不进、一字跌停卖不出，盘中触板但有成交的照常成交；板幅 10%，跟踪科创板 / 创业板指数的 ETF 为 20%" },
+        { "label": "停牌", "value": "停牌日没有成交" },
+        { "label": "价格", "value": "前复权" }
+      ],
+      "examples": [
+        { "idea": "近 20 日涨幅最大的 5 只、日均成交额 1 亿元以上", "condition": "MA(amount, 20) > 1e8", "rank_by": "close / REF(close, 20) - 1", "top_n": "5" },
+        { "idea": "站上 60 日线且 20 日波动率最低的 10 只", "condition": "(close > MA(close, 60)) * (MA(amount, 20) > 5e7)", "rank_by": "STD(ret1, 20)", "rank_order": "asc", "top_n": "10" },
+        { "idea": "规模 10 亿以上、近 20 日份额增长最多的 10 只", "condition": "(scale > 1e9) * (MA(amount, 20) > 5e7)", "rank_by": "fund_share / REF(fund_share, 20) - 1", "top_n": "10" }
+      ]
+    },
+    {
+      "id": "us_equity",
+      "name": "美股",
+      "note": "条件选股与组合回测传 market=us_equity；择时回测传 market=us_equity 且 code 写美股代码（如 AAPL）。不支持因子体检。标的池自动加点时流动性门槛，基准为标普 500。只有价量字段。",
+      "supports": ["screen", "backtest_portfolio", "backtest_timing", "robustness"],
+      "base_filter": "每个调仓日当时 20 日均成交额 ≥ 1000 万美元、股价 ≥ 5 美元的股票（不含 ETF），包含期间退市的",
+      "portfolio_rules": [
+        { "label": "方向", "value": "只做多" },
+        { "label": "成交时点", "value": "用前一交易日收盘后的数据选股，调仓日开盘价成交，先卖后买" },
+        { "label": "涨跌停", "value": "美股没有涨跌停（个股熔断暂停不模拟）" },
+        { "label": "停牌", "value": "当天没有开盘价的不成交，卖不出的不影响用现金买其他标的；退市 / 被收购的按最后收盘价清算" },
+        { "label": "交易日", "value": "按美东日期" },
+        { "label": "价格", "value": "前复权（拆股、分红）" }
+      ],
+      "timing_rules": [
+        { "label": "方向", "value": "只做多" },
+        { "label": "成交时点", "value": "收盘确认信号，下一交易日开盘成交" },
+        { "label": "涨跌停", "value": "美股没有涨跌停（个股熔断暂停不模拟）" },
+        { "label": "停牌", "value": "当天没有开盘价的不成交" },
+        { "label": "交易日", "value": "按美东日期" },
+        { "label": "价格", "value": "前复权（拆股、分红）" }
+      ],
+      "examples": [
+        { "idea": "12-1 动量：过去 12 个月涨幅（剔除最近 1 个月）最高的 30 只", "rank_by": "REF(close, 21) / REF(close, 252) - 1", "top_n": "30" },
+        { "idea": "站上 200 日线、20 日波动率最低的 30 只", "condition": "close > MA(close, 200)", "rank_by": "STD(ret1, 20)", "rank_order": "asc", "top_n": "30" }
+      ]
+    },
+    {
+      "id": "hk_stock",
+      "name": "港股",
+      "note": "条件选股与组合回测传 market=hk_stock；择时回测传 market=hk_stock 且 code 写港股代码（如 00700.HK）。不支持因子体检。标的池自动加点时流动性门槛，基准为恒生指数。只有价量字段。",
+      "supports": ["screen", "backtest_portfolio", "backtest_timing", "robustness"],
+      "base_filter": "每个调仓日当时 20 日均成交额 ≥ 1000 万港元、股价 ≥ 1 港元的股票，包含期间退市的",
+      "portfolio_rules": [
+        { "label": "方向", "value": "只做多" },
+        { "label": "成交时点", "value": "用前一交易日收盘后的数据选股，调仓日开盘价成交，先卖后买" },
+        { "label": "涨跌停", "value": "港股没有涨跌停（市调机制不模拟）" },
+        { "label": "停牌", "value": "当天没有开盘价的不成交，卖不出的不影响用现金买其他标的；退市 / 被收购的按最后收盘价清算" },
+        { "label": "交易日", "value": "按香港日期" },
+        { "label": "价格", "value": "前复权（拆股、分红）" }
+      ],
+      "timing_rules": [
+        { "label": "方向", "value": "只做多" },
+        { "label": "成交时点", "value": "收盘确认信号，下一交易日开盘成交" },
+        { "label": "涨跌停", "value": "港股没有涨跌停（市调机制不模拟）" },
+        { "label": "停牌", "value": "当天没有开盘价的不成交" },
+        { "label": "交易日", "value": "按香港日期" },
+        { "label": "价格", "value": "前复权（拆股、分红）" }
+      ],
+      "examples": [
+        { "idea": "12-1 动量：过去 12 个月涨幅（剔除最近 1 个月）最高的 30 只", "rank_by": "REF(close, 21) / REF(close, 252) - 1", "top_n": "30" },
+        { "idea": "站上 200 日线、20 日波动率最低的 30 只", "condition": "close > MA(close, 200)", "rank_by": "STD(ret1, 20)", "rank_order": "asc", "top_n": "30" }
+      ]
+    },
+    {
+      "id": "cn_future",
+      "name": "期货",
+      "note": "择时回测（backtest_timing）code 写品种代码，可用 short_entry / short_exit 做空；条件选股与组合回测传 market=cn_future，在品种之间排序，short_n 做空排名末 N 个。都按主力连续、换月前复权，capital_budget_pct 设资金预算 %（默认 100；期货最多 300 即 3 倍杠杆）。数据从 2021 年起。不支持因子体检。",
+      "data_start": "2021",
+      "supports": ["screen", "backtest_portfolio", "backtest_timing", "robustness"],
+      "base_filter": "组合：每个调仓日只在当时 20 日均成交额 ≥ 10 亿元的品种里排",
+      "portfolio_rules": [
+        { "label": "标的", "value": "期货品种主力连续，换月前复权；每个调仓日只在当时 20 日均成交额 ≥ 10 亿元的品种里排" },
+        { "label": "方向", "value": "排名前 top_n 做多，末 short_n 做空（不重叠），有空头时多空名义各半" },
+        { "label": "仓位", "value": "总名义 ≈ 净值 × 杠杆（默认 1 倍），各品种等名义；手数 = 名义 ÷（信号日收盘 × 合约乘数）向下取整" },
+        { "label": "成交时点", "value": "用前一交易日收盘后的数据排序，调仓日开盘价成交，先减仓后加仓" },
+        { "label": "涨跌停", "value": "开盘涨停买不进（含平空）、开盘跌停卖不出（含开空），幅度按品种" },
+        { "label": "停牌", "value": "当天没有开盘价的不成交，不影响其他品种" },
+        { "label": "记账", "value": "按全额抵押的名义仓位逐日盯市（不加杠杆时与保证金制盈亏一致，期货没有融资成本）" },
+        { "label": "价格", "value": "前复权（主力连续换月复权）" }
+      ],
+      "timing_rules": [
+        { "label": "方向", "value": "多空双向：entry / exit 管多头，short_entry / short_exit 管空头；同一时间只持有一个方向" },
+        { "label": "标的", "value": "品种主力连续（如 RB 螺纹钢、IF 沪深 300 股指），换月日按前复权接续，不把换月跳空算成盈亏" },
+        { "label": "仓位", "value": "按名义杠杆定手数：合约名义价值 ≈ 账户净值 × 杠杆（默认 1 倍，即不加杠杆），保证金按品种保证金率占用" },
+        { "label": "每手", "value": "按手交易，合约乘数随品种（如螺纹钢 10 吨 / 手、沪深 300 股指 300 元 / 点），不足一手的不开" },
+        { "label": "成交时点", "value": "收盘确认信号，下一交易日开盘成交" },
+        { "label": "涨跌停", "value": "一字涨停（全天封板）买不进、一字跌停卖不出，盘中触板但有成交的照常成交" },
+        { "label": "价格", "value": "前复权（主力连续换月复权）" }
+      ],
+      "portfolio_examples": [
+        { "idea": "横截面动量：近 60 日涨幅前 5 个品种做多、末 5 个做空，每周调仓", "market": "cn_future", "rank_by": "close / REF(close, 60) - 1", "top_n": "5", "short_n": "5", "rebalance": "weekly" }
+      ],
+      "examples": [
+        { "idea": "螺纹钢 20/60 日均线多空：快线在慢线上方做多、下方做空，交叉反向平仓", "code": "RB", "indicators": { "fast": { "type": "SMA", "period": 20 }, "slow": { "type": "SMA", "period": 60 } }, "entry": { "type": "GT", "left": { "ind": "fast" }, "right": { "ind": "slow" } }, "exit": { "type": "CROSS_DOWN", "left": { "ind": "fast" }, "right": { "ind": "slow" } }, "short_entry": { "type": "LT", "left": { "ind": "fast" }, "right": { "ind": "slow" } }, "short_exit": { "type": "CROSS_UP", "left": { "ind": "fast" }, "right": { "ind": "slow" } } }
+      ]
+    }
+  ]
+}

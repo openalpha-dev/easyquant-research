@@ -1,0 +1,4580 @@
+{
+  "source": "dsl/indicator-metadata.json (EasyQuant engine)",
+  "filter": "daily-usable: no dataLevel, enabled, not B_ONLY, not requiresTickDrive",
+  "how": "indicators 是「名字 → {type, 参数...}」；规则里用 {\"ind\": \"名字\"} 引用。type 与参数键以本目录为准，不要臆造。",
+  "count": 132,
+  "types": [
+    {
+      "type": "PRICE",
+      "name": "价格字段",
+      "category": "价格基准",
+      "params": [
+        {
+          "key": "field",
+          "default": "CLOSE",
+          "kind": "string",
+          "description": "价格序列字段。CLOSE 为默认收盘价，也可取 OPEN/HIGH/LOW。"
+        }
+      ],
+      "compact": [
+        "field=CLOSE"
+      ],
+      "summary": "直接使用K线的开盘、收盘、最高、最低价作为指标。",
+      "pitfalls": [
+        "单独看收盘价容易忽略盘中波动，尤其日内交易者需要结合高低价",
+        "不同股票的价格绝对值差异大，不能直接比较价格高低"
+      ]
+    },
+    {
+      "type": "TYPICAL_PRICE",
+      "name": "典型价 (H+L+C)/3",
+      "category": "价格基准",
+      "params": [],
+      "compact": [],
+      "summary": "（最高 + 最低 + 收盘）÷ 3，CCI、MFI 等指标的输入。",
+      "pitfalls": []
+    },
+    {
+      "type": "MEDIAN_PRICE",
+      "name": "中间价 (H+L)/2",
+      "category": "价格基准",
+      "params": [],
+      "compact": [],
+      "summary": "（最高 + 最低）÷ 2，AO 等指标的输入。",
+      "pitfalls": []
+    },
+    {
+      "type": "WEIGHTED_CLOSE",
+      "name": "加权收盘价 (H+L+2C)/4",
+      "category": "价格基准",
+      "params": [],
+      "compact": [],
+      "summary": "（最高 + 最低 + 2×收盘）÷ 4，比典型价更看重收盘。",
+      "pitfalls": []
+    },
+    {
+      "type": "SMA",
+      "name": "简单移动平均",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 14,
+          "kind": "int",
+          "description": "简单移动平均周期。用于该指标计算所回溯的 K 线根数（周期越大曲线越平滑、滞后越大）。"
+        }
+      ],
+      "compact": [
+        "period=14"
+      ],
+      "summary": "最近 N 根收盘价的算术平均，技术分析里最经典的均线指标。",
+      "pitfalls": [
+        "横盘震荡市场会被反复打脸，胜率可能跌到 30% 以下",
+        "周期越大滞后越严重——刚发出金叉时趋势往往已经走了一半",
+        "单独用 SMA 容易过拟合到回测期，实盘建议配合成交量或波动率过滤"
+      ]
+    },
+    {
+      "type": "EMA",
+      "name": "指数移动平均",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 14,
+          "kind": "int",
+          "description": "指数移动平均周期。用于该指标计算所回溯的 K 线根数（周期越大曲线越平滑、滞后越大）。"
+        }
+      ],
+      "compact": [
+        "period=14"
+      ],
+      "summary": "对近期价格赋予更高权重的均线，比SMA更灵敏。",
+      "pitfalls": [
+        "太灵敏是双刃剑——震荡市里EMA比SMA更容易被来回扫，产生更多假信号",
+        "参数设太小（如EMA5）几乎跟价格重合，失去平滑意义，噪音很大"
+      ]
+    },
+    {
+      "type": "DEMA",
+      "name": "双指数移动平均",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 14,
+          "kind": "int",
+          "description": "双指数移动平均周期。用于该指标计算所回溯的 K 线根数（周期越大曲线越平滑、滞后越大）。"
+        }
+      ],
+      "compact": [
+        "period=14"
+      ],
+      "summary": "减少滞后性的双指数均线，比普通均线更灵敏。",
+      "pitfalls": [
+        "在震荡行情中 DEMA 会频繁发出假信号，比普通均线更容易被「左右打脸」",
+        "参数周期太小时（如小于 5），DEMA 几乎紧贴价格，失去平滑意义，反而增加噪音"
+      ]
+    },
+    {
+      "type": "TEMA",
+      "name": "三指数移动平均",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 14,
+          "kind": "int",
+          "description": "三指数移动平均周期。用于该指标计算所回溯的 K 线根数（周期越大曲线越平滑、滞后越大）。"
+        }
+      ],
+      "compact": [
+        "period=14"
+      ],
+      "summary": "三重平滑均线，比EMA更快更平滑，减少滞后。",
+      "pitfalls": [
+        "在剧烈震荡行情中，TEMA会频繁发出假突破信号，因为它的灵敏度太高了",
+        "TEMA的公式复杂，很多软件计算有差异，不同平台看到的TEMA可能不一样，别盲目照搬别人的参数",
+        "它本质还是滞后指标，只是滞后比EMA小一些，但遇到V型反转依然会慢半拍"
+      ]
+    },
+    {
+      "type": "HMA",
+      "name": "赫尔均线 HMA",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "周期"
+        }
+      ],
+      "compact": [
+        "period=20"
+      ],
+      "summary": "比 EMA 更贴近价格、又更平滑的均线。",
+      "pitfalls": [
+        "转向快也意味着震荡市里来回穿越多"
+      ]
+    },
+    {
+      "type": "KAMA",
+      "name": "考夫曼自适应均线 KAMA",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 10,
+          "kind": "int",
+          "description": "效率周期"
+        },
+        {
+          "key": "fast",
+          "default": 2,
+          "kind": "int",
+          "description": "快线"
+        },
+        {
+          "key": "slow",
+          "default": 30,
+          "kind": "int",
+          "description": "慢线"
+        }
+      ],
+      "compact": [
+        "period=10",
+        "fast=2",
+        "slow=30"
+      ],
+      "summary": "趋势明确时跟得紧、震荡时变钝的自适应均线。",
+      "pitfalls": [
+        "参数多，默认 10/2/30 即可"
+      ]
+    },
+    {
+      "type": "BBI",
+      "name": "多空指标 BBI",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "m1",
+          "default": 3,
+          "kind": "int",
+          "description": "均线 1"
+        },
+        {
+          "key": "m2",
+          "default": 6,
+          "kind": "int",
+          "description": "均线 2"
+        },
+        {
+          "key": "m3",
+          "default": 12,
+          "kind": "int",
+          "description": "均线 3"
+        },
+        {
+          "key": "m4",
+          "default": 24,
+          "kind": "int",
+          "description": "均线 4"
+        }
+      ],
+      "compact": [
+        "m1=3",
+        "m2=6",
+        "m3=12",
+        "m4=24"
+      ],
+      "summary": "3/6/12/24 日均线的平均，价格在其上方偏多、下方偏空。",
+      "pitfalls": [
+        "本质是均线，震荡市反复穿越"
+      ]
+    },
+    {
+      "type": "WMA",
+      "name": "加权移动平均",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 14,
+          "kind": "int",
+          "description": "加权移动平均周期。用于该指标计算所回溯的 K 线根数（周期越大曲线越平滑、滞后越大）。"
+        }
+      ],
+      "compact": [
+        "period=14"
+      ],
+      "summary": "给近期价格更高权重，比SMA更灵敏的均线。",
+      "pitfalls": [
+        "因为反应太快，在震荡行情里会比SMA产生更多假信号，频繁被洗",
+        "WMA的滞后性虽小于SMA，但依然存在，大周期（如60日）仍会慢半拍",
+        "权重分配方式固定，不一定适合所有股票或所有行情阶段"
+      ]
+    },
+    {
+      "type": "VWMA",
+      "name": "成交量加权移动平均",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 14,
+          "kind": "int",
+          "description": "成交量加权移动平均周期。用于该指标计算所回溯的 K 线根数（周期越大曲线越平滑、滞后越大）。"
+        }
+      ],
+      "compact": [
+        "period=14"
+      ],
+      "summary": "成交量加权的移动平均，比SMA更灵敏地反映真实价格。",
+      "pitfalls": [
+        "极端放量日会严重扭曲VWMA，比如某天突然放出天量，VWMA会被瞬间拉偏，之后几天才慢慢修正",
+        "在成交量持续萎缩的股票上，VWMA和SMA几乎没区别，白白增加计算复杂度",
+        "VWMA的滞后性比SMA更严重，因为大成交量往往出现在趋势末端，导致VWMA反应更慢"
+      ]
+    },
+    {
+      "type": "ROC",
+      "name": "变动率",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "period",
+          "default": 10,
+          "kind": "int",
+          "description": "ROC 计算窗口（根数）。"
+        }
+      ],
+      "compact": [
+        "period=10"
+      ],
+      "summary": "衡量价格变动速度，发现超买超卖和背离。",
+      "pitfalls": [
+        "ROC 在横盘震荡时频繁穿越 0 轴，会产生大量假信号，让你反复买卖亏手续费",
+        "ROC 只看两个时间点的价格差，容易受单日异常波动影响，比如某天突然拉涨停，ROC 会瞬间飙升，但趋势未必持续",
+        "不同股票的波动率不同，统一的阈值（如 ±20）可能完全无效，需要根据历史数据调整"
+      ]
+    },
+    {
+      "type": "MTM",
+      "name": "动量 MTM",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "period",
+          "default": 12,
+          "kind": "int",
+          "description": "周期"
+        }
+      ],
+      "compact": [
+        "period=12"
+      ],
+      "summary": "当前收盘与 N 根前收盘之差，衡量涨跌速度。",
+      "pitfalls": [
+        "是价差，不同价位的股票不能直接比"
+      ]
+    },
+    {
+      "type": "CMO",
+      "name": "钱德动量摆动 CMO",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "period",
+          "default": 14,
+          "kind": "int",
+          "description": "周期"
+        }
+      ],
+      "compact": [
+        "period=14"
+      ],
+      "summary": "上涨幅度与下跌幅度之差占总幅度的比例，范围 −100~100。",
+      "pitfalls": [
+        "与 RSI 同类，二选一即可"
+      ]
+    },
+    {
+      "type": "QSTICK",
+      "name": "QStick 阴阳量",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "period",
+          "default": 8,
+          "kind": "int",
+          "description": "周期"
+        }
+      ],
+      "compact": [
+        "period=8"
+      ],
+      "summary": "近 N 根「收盘 − 开盘」的均值，看阳线多还是阴线多。",
+      "pitfalls": [
+        "是价差，不同价位的股票不能直接比"
+      ]
+    },
+    {
+      "type": "AR",
+      "name": "BRAR · AR",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "n",
+          "default": 26,
+          "kind": "int",
+          "description": "周期"
+        }
+      ],
+      "compact": [
+        "n=26"
+      ],
+      "summary": "人气指标：开盘后的多空力量。",
+      "pitfalls": [
+        "开盘价被操纵（如集合竞价异常）时失真"
+      ]
+    },
+    {
+      "type": "BR",
+      "name": "BRAR · BR",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "n",
+          "default": 26,
+          "kind": "int",
+          "description": "周期"
+        }
+      ],
+      "compact": [
+        "n=26"
+      ],
+      "summary": "意愿指标：相对昨收的多空力量。",
+      "pitfalls": []
+    },
+    {
+      "type": "BIAS",
+      "name": "乖离率 BIAS",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "均线周期。"
+        }
+      ],
+      "compact": [
+        "period=20"
+      ],
+      "summary": "价格偏离 N 日均线的百分比，偏离过大常有回归。",
+      "pitfalls": [
+        "强势股可以长时间保持高乖离，单独做空 / 卖出容易卖飞",
+        "不同波动率的股票合理区间不同，阈值要按股票调"
+      ]
+    },
+    {
+      "type": "PSY",
+      "name": "心理线 PSY",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "period",
+          "default": 12,
+          "kind": "int",
+          "description": "统计窗口（根数）。"
+        }
+      ],
+      "compact": [
+        "period=12"
+      ],
+      "summary": "N 日内上涨天数占比，反映市场情绪冷热。",
+      "pitfalls": [
+        "只数涨跌天数、不看幅度，小涨多日与大涨一日同样计 1"
+      ]
+    },
+    {
+      "type": "CR",
+      "name": "能量指标 CR",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "period",
+          "default": 26,
+          "kind": "int",
+          "description": "统计窗口（根数）。"
+        }
+      ],
+      "compact": [
+        "period=26"
+      ],
+      "summary": "以昨日中间价为基准，比较多空力量。",
+      "pitfalls": [
+        "N 日内全部高于昨中价时分母为 0，值为空"
+      ]
+    },
+    {
+      "type": "RSI",
+      "name": "RSI",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "period",
+          "default": 14,
+          "kind": "int",
+          "description": "RSI 回溯周期；后端与 Ta4j 一致会将结果钳制为至少 2。"
+        }
+      ],
+      "compact": [
+        "period=14"
+      ],
+      "summary": "通过最近 N 期涨跌幅比衡量超买超卖，0-100 区间的震荡指标。",
+      "pitfalls": [
+        "单边趋势市场 RSI 会长期「钝化」（持续 > 80 或 < 20），不发信号或发错信号",
+        "短周期 RSI（< 7）噪声极大，假信号频繁，建议至少 9 以上",
+        "单独用 RSI 抄底，在熊市会越买越套——必须配合趋势过滤"
+      ]
+    },
+    {
+      "type": "MACD",
+      "name": "MACD 快线（DIF）",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "fast",
+          "default": 12,
+          "kind": "int",
+          "description": "快线 EMA 周期；若与 slow 均省略则使用 Ta4j 默认 MACD。"
+        },
+        {
+          "key": "slow",
+          "default": 26,
+          "kind": "int",
+          "description": "慢线 EMA 周期；须大于快线（运行时会自动保证 slow≥fast+1）。"
+        }
+      ],
+      "compact": [
+        "fast=12",
+        "slow=26"
+      ],
+      "summary": "快慢两条 EMA 的差值，量化趋势动能与转折。",
+      "pitfalls": [
+        "横盘市场会频繁金叉死叉，假信号成倍增加",
+        "MACD 本质是滞后指标，趋势确认时往往已经走了一半",
+        "0 轴附近的金叉死叉效果差，建议结合 0 轴位置过滤"
+      ]
+    },
+    {
+      "type": "MACD_SIGNAL",
+      "name": "MACD 慢线（DEA）",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "fast",
+          "default": 12,
+          "kind": "int",
+          "description": "MACD 快线周期。"
+        },
+        {
+          "key": "slow",
+          "default": 26,
+          "kind": "int",
+          "description": "MACD 慢线周期（须大于快线）。"
+        },
+        {
+          "key": "signal",
+          "default": 9,
+          "kind": "int",
+          "description": "对 MACD 线再取 EMA 的周期（信号线）。"
+        }
+      ],
+      "compact": [
+        "fast=12",
+        "slow=26",
+        "signal=9"
+      ],
+      "summary": "MACD 的慢线，用于确认趋势和发出买卖信号。",
+      "pitfalls": [
+        "震荡市中金叉死叉频繁出现，胜率极低，容易反复被割",
+        "信号线滞后于快线，等金叉出现时行情可能已经走了一大半",
+        "单独看信号线容易误判，必须结合快线位置和零轴判断趋势强弱"
+      ]
+    },
+    {
+      "type": "MACD_HIST",
+      "name": "MACD 柱（DIF − DEA）",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "fast",
+          "default": 12,
+          "kind": "int",
+          "description": "MACD 快线周期。"
+        },
+        {
+          "key": "slow",
+          "default": 26,
+          "kind": "int",
+          "description": "MACD 慢线周期（须大于快线）。"
+        },
+        {
+          "key": "signal",
+          "default": 9,
+          "kind": "int",
+          "description": "用于计算柱（MACD−信号线）的周期。"
+        }
+      ],
+      "compact": [
+        "fast=12",
+        "slow=26",
+        "signal=9"
+      ],
+      "summary": "MACD 柱 = 快慢线差值再平滑，反映动能强弱和背离。",
+      "pitfalls": [
+        "在震荡市里，柱子频繁翻红翻绿，信号密集且虚假，追涨杀跌会被反复打脸",
+        "背离信号在单边强趋势中可能连续出现多次「假背离」，价格继续原方向运行",
+        "柱子缩短不等于马上反转，只是动能减弱，可能横盘后再加速，过早反向操作会踏空"
+      ]
+    },
+    {
+      "type": "BOLL_MID",
+      "name": "布林中轨",
+      "category": "通道与布林",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "布林带中轨 SMA 周期。用于该指标计算所回溯的 K 线根数（周期越大曲线越平滑、滞后越大）。"
+        }
+      ],
+      "compact": [
+        "period=20"
+      ],
+      "summary": "布林带中轨 = N 周期 SMA，配合上下轨判断「价格是否偏离常态」。",
+      "pitfalls": [
+        "单边强趋势市场，价格会持续沿上轨或下轨运行，用通道反转必死",
+        "中轨周期太短（< 10）噪声大，太长（> 30）滞后明显，20 是经典折中",
+        "默认 2 倍标准差适合大盘股，小盘股波动大可考虑 2.5-3"
+      ]
+    },
+    {
+      "type": "BOLL_UPPER",
+      "name": "布林上轨",
+      "category": "通道与布林",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "中轨与标准差计算所用的周期。"
+        },
+        {
+          "key": "k",
+          "default": 2,
+          "kind": "double",
+          "description": "上轨 = 中轨 + k×标准差。"
+        }
+      ],
+      "compact": [
+        "period=20",
+        "k=2"
+      ],
+      "summary": "布林带的上轨，代表股价的「压力线」，突破可能意味着强势或泡沫。",
+      "pitfalls": [
+        "在单边大涨行情中，股价会长时间贴着上轨运行，此时卖出会踏空大段利润",
+        "横盘震荡时上轨会频繁被触碰又回落，容易产生假突破，导致反复止损",
+        "参数设置不当（如周期太短或倍数太小）会导致上轨过于敏感，信号过多",
+        "上轨本身不提供买卖点，必须结合其他指标（如成交量、RSI）才能提高胜率"
+      ]
+    },
+    {
+      "type": "BOLL_LOWER",
+      "name": "布林下轨",
+      "category": "通道与布林",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "中轨与标准差计算所用的周期。"
+        },
+        {
+          "key": "k",
+          "default": 2,
+          "kind": "double",
+          "description": "下轨 = 中轨 − k×标准差。"
+        }
+      ],
+      "compact": [
+        "period=20",
+        "k=2"
+      ],
+      "summary": "布林带的下轨，通常代表超卖区域或支撑位。",
+      "pitfalls": [
+        "单边下跌行情中，价格会沿着下轨持续下行，此时抄底会被套牢",
+        "下轨只是统计边界，不是绝对支撑，价格可以长期在下轨下方运行",
+        "横盘震荡时，价格反复触碰下轨但无实质反弹，容易产生假信号"
+      ]
+    },
+    {
+      "type": "ATR",
+      "name": "ATR",
+      "category": "波动率",
+      "params": [
+        {
+          "key": "period",
+          "default": 14,
+          "kind": "int",
+          "description": "平均真实波幅 ATR 的周期。用于该指标计算所回溯的 K 线根数（周期越大曲线越平滑、滞后越大）。"
+        }
+      ],
+      "compact": [
+        "period=14"
+      ],
+      "summary": "平均真实波幅，衡量股票的「日均波动幅度」，是风控和止损的基石。",
+      "pitfalls": [
+        "ATR 不指方向，单独用毫无意义，必须配合趋势指标",
+        "暴跌或大涨后 ATR 会被拉得很高，用它做止损可能被「震出场」",
+        "不同股票的 ATR 数量级差异极大（茅台 vs 创业板小盘股），跨标的策略要用 ATR% 标准化"
+      ]
+    },
+    {
+      "type": "ATR_PCT",
+      "name": "ATR 波动率百分比",
+      "category": "波动率",
+      "params": [
+        {
+          "key": "period",
+          "default": 14,
+          "kind": "int",
+          "description": "ATR / 收盘价 × 100，用于跨品种波动过滤。"
+        }
+      ],
+      "compact": [
+        "period=14"
+      ],
+      "summary": "ATR 除以价格，标准化波动率，方便跨股对比。",
+      "pitfalls": [
+        "低价股（比如 1 元以下）的 ATR% 可能虚高，因为价格基数小，实际波动金额不大",
+        "停牌后复牌的股票 ATR% 会突然暴增，不要直接用来止损，等几天稳定再说",
+        "ATR% 本身不指方向，不能单独做买卖信号，必须配合趋势指标"
+      ]
+    },
+    {
+      "type": "BOLL_WIDTH",
+      "name": "布林带宽",
+      "category": "波动率",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "周期"
+        },
+        {
+          "key": "k",
+          "default": 2,
+          "kind": "double",
+          "description": "标准差倍数"
+        }
+      ],
+      "compact": [
+        "period=20",
+        "k=2"
+      ],
+      "summary": "布林上下轨之间的宽度占中轨的百分比，衡量波动收敛与扩张。",
+      "pitfalls": [
+        "只说波动大小、不说方向"
+      ]
+    },
+    {
+      "type": "HIST_VOLATILITY",
+      "name": "历史波动率（年化）",
+      "category": "波动率",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "周期"
+        }
+      ],
+      "compact": [
+        "period=20"
+      ],
+      "summary": "近 N 根对数收益率的标准差，按周期年化成百分比。",
+      "pitfalls": [
+        "与期权隐含波动率是两回事"
+      ]
+    },
+    {
+      "type": "CHAIKIN_VOLATILITY",
+      "name": "蔡金波动率",
+      "category": "波动率",
+      "params": [
+        {
+          "key": "n",
+          "default": 10,
+          "kind": "int",
+          "description": "平滑"
+        },
+        {
+          "key": "m",
+          "default": 10,
+          "kind": "int",
+          "description": "比较间隔"
+        }
+      ],
+      "compact": [
+        "n=10",
+        "m=10"
+      ],
+      "summary": "高低价差的 EMA 相对 m 根前的变化率。",
+      "pitfalls": []
+    },
+    {
+      "type": "OBV",
+      "name": "能量潮 OBV",
+      "category": "量价与资金流",
+      "params": [],
+      "compact": [],
+      "summary": "通过量价关系判断资金流向，辅助验证趋势。",
+      "pitfalls": [
+        "OBV 在极端行情（如连续涨停/跌停）时会失真，因为成交量可能被限制或情绪化放大",
+        "OBV 本身不给出买卖点，必须结合价格形态或均线使用，单独看容易误判",
+        "大盘股和庄股的 OBV 表现差异很大：庄股 OBV 可能被操纵，而大盘股更真实",
+        "OBV 对日内波动不敏感，适合日线以上周期，短线用容易产生滞后"
+      ]
+    },
+    {
+      "type": "VR",
+      "name": "成交量比率 VR",
+      "category": "量价与资金流",
+      "params": [
+        {
+          "key": "period",
+          "default": 26,
+          "kind": "int",
+          "description": "统计窗口（根数）。"
+        }
+      ],
+      "compact": [
+        "period=26"
+      ],
+      "summary": "上涨日成交量与下跌日成交量之比。",
+      "pitfalls": [
+        "N 日全部上涨时分母为 0，值为空"
+      ]
+    },
+    {
+      "type": "VPT",
+      "name": "价量趋势 VPT",
+      "category": "量价与资金流",
+      "params": [],
+      "compact": [],
+      "summary": "按涨跌幅加权的累计成交量，看量价是否配合。",
+      "pitfalls": [
+        "累计值，只看方向和背离，不看绝对数"
+      ]
+    },
+    {
+      "type": "EMV",
+      "name": "简易波动 EMV",
+      "category": "量价与资金流",
+      "params": [
+        {
+          "key": "n",
+          "default": 14,
+          "kind": "int",
+          "description": "周期"
+        }
+      ],
+      "compact": [
+        "n=14"
+      ],
+      "summary": "结合价格变化与成交量，衡量上涨下跌的难易程度。",
+      "pitfalls": [
+        "停牌 / 零成交量的根会得到空值"
+      ]
+    },
+    {
+      "type": "VWAP",
+      "name": "VWAP",
+      "category": "量价与资金流",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "VWAP 计算的锚定/窗口类参数（实现依 Ta4j）。"
+        }
+      ],
+      "compact": [
+        "period=20"
+      ],
+      "summary": "成交量加权平均价，机构和大户最常用的日内成本线。",
+      "pitfalls": [
+        "VWAP 是日内指标，收盘后重置，不能用于隔夜或跨日分析",
+        "在成交量极度萎缩的股票上，VWAP 会失真，因为少量大单就能扭曲平均值",
+        "VWAP 本身不预测方向，只反映当前成本，单独用容易追涨杀跌"
+      ]
+    },
+    {
+      "type": "MFI",
+      "name": "资金流量指标 MFI",
+      "category": "量价与资金流",
+      "params": [
+        {
+          "key": "period",
+          "default": 14,
+          "kind": "int",
+          "description": "MFI 典型周期 14。用于该指标计算所回溯的 K 线根数（周期越大曲线越平滑、滞后越大）。"
+        }
+      ],
+      "compact": [
+        "period=14"
+      ],
+      "summary": "结合价格与成交量的超买超卖指标，类似成交量加权的 RSI。",
+      "pitfalls": [
+        "在持续单边牛市中，MFI 可能长期在 80 以上钝化，过早卖出会踏空",
+        "MFI 对成交量异常敏感，如果股票突然放量（比如庄家对倒），MFI 会失真",
+        "背离信号在震荡市里准确率较高，但在强趋势中可能反复出现假背离"
+      ]
+    },
+    {
+      "type": "ADX",
+      "name": "ADX",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "diPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "方向线 DI 的计算周期。"
+        },
+        {
+          "key": "adxPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "ADX 平滑周期；省略时使用与 diPeriod 相关的默认构造。"
+        }
+      ],
+      "compact": [
+        "diPeriod=14",
+        "adxPeriod=14"
+      ],
+      "summary": "衡量趋势强弱的指标，不指方向只看力度。",
+      "pitfalls": [
+        "ADX 只测强弱不测方向，单独看 ADX 上升就买卖会两头挨打",
+        "ADX 在趋势末期可能仍很高，但价格已到顶/底，容易追高或杀跌",
+        "参数周期太短（如 7）会导致 ADX 频繁跳动，假信号增多"
+      ]
+    },
+    {
+      "type": "VI_PLUS",
+      "name": "涡旋指标 · +VI",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 14,
+          "kind": "int",
+          "description": "周期"
+        }
+      ],
+      "compact": [
+        "period=14"
+      ],
+      "summary": "上涨方向的涡旋强度。",
+      "pitfalls": [
+        "震荡市交叉频繁"
+      ]
+    },
+    {
+      "type": "VI_MINUS",
+      "name": "涡旋指标 · −VI",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 14,
+          "kind": "int",
+          "description": "周期"
+        }
+      ],
+      "compact": [
+        "period=14"
+      ],
+      "summary": "下跌方向的涡旋强度。",
+      "pitfalls": []
+    },
+    {
+      "type": "TRIX",
+      "name": "TRIX 三重指数平滑",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "n",
+          "default": 12,
+          "kind": "int",
+          "description": "周期"
+        }
+      ],
+      "compact": [
+        "n=12"
+      ],
+      "summary": "三次平滑后的变化率，过滤短期噪音看中长期趋势。",
+      "pitfalls": [
+        "反应慢，适合中线"
+      ]
+    },
+    {
+      "type": "TRIX_SIGNAL",
+      "name": "TRIX · MATRIX",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "n",
+          "default": 12,
+          "kind": "int",
+          "description": "周期"
+        },
+        {
+          "key": "m",
+          "default": 9,
+          "kind": "int",
+          "description": "均线"
+        }
+      ],
+      "compact": [
+        "n=12",
+        "m=9"
+      ],
+      "summary": "TRIX 的 m 日均线（信号线）。",
+      "pitfalls": []
+    },
+    {
+      "type": "DMA",
+      "name": "DMA 平行线差 · DIF",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "short",
+          "default": 10,
+          "kind": "int",
+          "description": "短均线"
+        },
+        {
+          "key": "long",
+          "default": 50,
+          "kind": "int",
+          "description": "长均线"
+        }
+      ],
+      "compact": [
+        "short=10",
+        "long=50"
+      ],
+      "summary": "短期均线与长期均线之差。",
+      "pitfalls": [
+        "均线类，滞后"
+      ]
+    },
+    {
+      "type": "AMA",
+      "name": "DMA 平行线差 · AMA",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "short",
+          "default": 10,
+          "kind": "int",
+          "description": "短均线"
+        },
+        {
+          "key": "long",
+          "default": 50,
+          "kind": "int",
+          "description": "长均线"
+        },
+        {
+          "key": "m",
+          "default": 10,
+          "kind": "int",
+          "description": "平滑"
+        }
+      ],
+      "compact": [
+        "short=10",
+        "long=50",
+        "m=10"
+      ],
+      "summary": "DIF 的 m 日均线。",
+      "pitfalls": []
+    },
+    {
+      "type": "PLUS_DI",
+      "name": "+DI",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 14,
+          "kind": "int",
+          "description": "+DI 计算周期。"
+        }
+      ],
+      "compact": [
+        "period=14"
+      ],
+      "summary": "衡量上涨方向动量的指标，常与-DI配合判断趋势。",
+      "pitfalls": [
+        "在震荡行情中，+DI 和 -DI 会频繁交叉，产生大量假信号，容易追涨杀跌",
+        "+DI 本身不给出具体买卖点，必须结合 -DI 和 ADX 一起用，单独看容易误判",
+        "参数周期太短（如 7）会导致指标过于敏感，噪声多；周期太长（如 30）则反应迟钝，错过行情"
+      ]
+    },
+    {
+      "type": "MINUS_DI",
+      "name": "-DI",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 14,
+          "kind": "int",
+          "description": "−DI 计算周期。"
+        }
+      ],
+      "compact": [
+        "period=14"
+      ],
+      "summary": "衡量下跌动能的强度，与+DI配合判断趋势方向。",
+      "pitfalls": [
+        "在震荡市中-DI和+DI频繁交叉，会产生大量假信号，容易追涨杀跌",
+        "单独看-DI没有意义，必须和+DI、ADX一起用，否则容易误判趋势",
+        "参数周期太短（如5以下）会导致-DI过于敏感，噪声多；太长（如30以上）则反应迟钝，错过行情"
+      ]
+    },
+    {
+      "type": "PARABOLIC_SAR",
+      "name": "抛物线 SAR",
+      "category": "趋势与方向",
+      "params": [],
+      "compact": [],
+      "summary": "通过反转点跟踪趋势，自动提示止损或转向。",
+      "pitfalls": [
+        "横盘震荡时会被反复打脸，SAR 点频繁上下翻转，导致连续亏损",
+        "加速因子固定，遇到急涨急跌行情可能跟不上，止损被打掉后行情继续",
+        "在跳空缺口或极端行情下，SAR 点可能瞬间远离价格，失去参考意义"
+      ]
+    },
+    {
+      "type": "AROON_UP",
+      "name": "Aroon Up",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 25,
+          "kind": "int",
+          "description": "Aroon Up 窗口长度。"
+        }
+      ],
+      "compact": [
+        "period=25"
+      ],
+      "summary": "衡量价格创N日新高的速度，判断上升趋势强弱。",
+      "pitfalls": [
+        "横盘震荡时 Aroon Up 会频繁上下穿越 50，产生大量假信号",
+        "指标只看「创新高」不看幅度，如果价格缓慢爬升但总创新高，Aroon Up 依然很高，容易让人忽视回调风险"
+      ]
+    },
+    {
+      "type": "AROON_DOWN",
+      "name": "Aroon Down",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 25,
+          "kind": "int",
+          "description": "Aroon Down 窗口长度。"
+        }
+      ],
+      "compact": [
+        "period=25"
+      ],
+      "summary": "衡量价格创N日新低的强度，判断下跌趋势是否持续。",
+      "pitfalls": [
+        "在横盘震荡行情中，Aroon Down 会频繁在 0-100 之间乱跳，产生大量假信号",
+        "Aroon Down 只反映「新低」的时效性，不反映跌幅大小——连续小阴线也能让指标维持高位",
+        "参数 N 选太小（如 10）会过于敏感，容易追在短期低点；选太大（如 50）则反应迟钝"
+      ]
+    },
+    {
+      "type": "AROON_OSC",
+      "name": "Aroon 振荡器",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 25,
+          "kind": "int",
+          "description": "Aroon 振荡器窗口（Up−Down）。"
+        }
+      ],
+      "compact": [
+        "period=25"
+      ],
+      "summary": "衡量趋势的强弱和持续性，通过时间位置判断方向。",
+      "pitfalls": [
+        "在横盘震荡市中，Aroon 振荡器会频繁穿越 0 轴，产生大量假信号，让你反复止损",
+        "它只考虑最高价和最低价的位置，忽略收盘价，所以极端影线可能误导判断",
+        "参数周期 N 太小时，指标过于敏感，噪音多；太大时，反应迟钝，错过最佳入场点"
+      ]
+    },
+    {
+      "type": "AWESOME_OSC",
+      "name": "动量振荡器 AO",
+      "category": "震荡指标",
+      "params": [],
+      "compact": [],
+      "summary": "衡量最近5根K线与34根K线动量差值的震荡指标。",
+      "pitfalls": [
+        "横盘震荡时柱子频繁变色，容易产生假信号，胜率很低",
+        "零轴附近柱子很矮时信号意义弱，容易追高或杀跌",
+        "AO只看价格中位，忽略成交量，单用容易被骗线"
+      ]
+    },
+    {
+      "type": "KDJ_K",
+      "name": "KDJ · K",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "n",
+          "default": 9,
+          "kind": "int",
+          "description": "最近 n 根的最高价、最低价，用来算 RSV（收盘在区间中的位置）。"
+        },
+        {
+          "key": "m1",
+          "default": 3,
+          "kind": "int",
+          "description": "K = RSV 的 m1 日平滑（SMA(RSV, m1, 1)）。"
+        },
+        {
+          "key": "m2",
+          "default": 3,
+          "kind": "int",
+          "description": "D = K 的 m2 日平滑（SMA(K, m2, 1)）。"
+        }
+      ],
+      "compact": [
+        "n=9",
+        "m1=3",
+        "m2=3"
+      ],
+      "summary": "KDJ 的 K 线：收盘价在近期高低区间中的位置（平滑后）。",
+      "pitfalls": [
+        "单边趋势里 K、D 会长时间钝化在 80 以上或 20 以下，超买超卖信号失效",
+        "震荡市金叉死叉很多，建议配合趋势过滤（如价格在 MA20 上方才做金叉）",
+        "一字板 / 停牌补的平价 K 线最高 = 最低，RSV 无定义，这一根 K 沿用上一根"
+      ]
+    },
+    {
+      "type": "KDJ_D",
+      "name": "KDJ · D",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "n",
+          "default": 9,
+          "kind": "int",
+          "description": "最近 n 根的最高价、最低价，用来算 RSV（收盘在区间中的位置）。"
+        },
+        {
+          "key": "m1",
+          "default": 3,
+          "kind": "int",
+          "description": "K = RSV 的 m1 日平滑（SMA(RSV, m1, 1)）。"
+        },
+        {
+          "key": "m2",
+          "default": 3,
+          "kind": "int",
+          "description": "D = K 的 m2 日平滑（SMA(K, m2, 1)）。"
+        }
+      ],
+      "compact": [
+        "n=9",
+        "m1=3",
+        "m2=3"
+      ],
+      "summary": "KDJ 的 D 线：K 的再平滑，比 K 慢，用来和 K 比交叉。",
+      "pitfalls": [
+        "单边趋势里 K、D 会长时间钝化在 80 以上或 20 以下，超买超卖信号失效",
+        "震荡市金叉死叉很多，建议配合趋势过滤（如价格在 MA20 上方才做金叉）",
+        "一字板 / 停牌补的平价 K 线最高 = 最低，RSV 无定义，这一根 K 沿用上一根"
+      ]
+    },
+    {
+      "type": "KDJ_J",
+      "name": "KDJ · J",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "n",
+          "default": 9,
+          "kind": "int",
+          "description": "最近 n 根的最高价、最低价，用来算 RSV（收盘在区间中的位置）。"
+        },
+        {
+          "key": "m1",
+          "default": 3,
+          "kind": "int",
+          "description": "K = RSV 的 m1 日平滑（SMA(RSV, m1, 1)）。"
+        },
+        {
+          "key": "m2",
+          "default": 3,
+          "kind": "int",
+          "description": "D = K 的 m2 日平滑（SMA(K, m2, 1)）。"
+        }
+      ],
+      "compact": [
+        "n=9",
+        "m1=3",
+        "m2=3"
+      ],
+      "summary": "KDJ 的 J 线 = 3K − 2D，最灵敏，可以超出 0~100。",
+      "pitfalls": [
+        "单边趋势里 K、D 会长时间钝化在 80 以上或 20 以下，超买超卖信号失效",
+        "震荡市金叉死叉很多，建议配合趋势过滤（如价格在 MA20 上方才做金叉）",
+        "一字板 / 停牌补的平价 K 线最高 = 最低，RSV 无定义，这一根 K 沿用上一根",
+        "J 波动最大，单独用假信号多"
+      ]
+    },
+    {
+      "type": "CCI",
+      "name": "CCI",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "典型商品通道指标周期。"
+        }
+      ],
+      "compact": [
+        "period=20"
+      ],
+      "summary": "衡量价格相对统计位置，判断超买超卖的震荡指标。",
+      "pitfalls": [
+        "在强趋势行情中，CCI会长时间停留在超买或超卖区，过早反向操作会导致巨大亏损",
+        "CCI对价格突变非常敏感，一根大阳线或大阴线就能让数值剧烈变化，容易产生假信号",
+        "不同股票或周期的CCI阈值（+100/-100）并非万能，需要根据品种特性调整"
+      ]
+    },
+    {
+      "type": "WILLIAMS_R",
+      "name": "威廉指标",
+      "category": "震荡指标",
+      "params": [
+        {
+          "key": "period",
+          "default": 14,
+          "kind": "int",
+          "description": "威廉 %R 回溯长度。"
+        }
+      ],
+      "compact": [
+        "period=14"
+      ],
+      "summary": "衡量价格在近期高低点中的位置，超买超卖信号。",
+      "pitfalls": [
+        "在单边暴涨或暴跌行情中，指标会长时间停留在超买/超卖区，此时按信号反向操作会被严重打脸",
+        "周期太短（如 5 天）信号频繁，假信号多；周期太长（如 30 天）信号稀少，容易错过行情",
+        "单独使用威廉指标胜率不高，最好配合均线或趋势指标过滤"
+      ]
+    },
+    {
+      "type": "DONCHIAN_UPPER",
+      "name": "唐奇安上轨",
+      "category": "通道与布林",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "唐奇安通道回溯根数：取当根之前的 N 根，不含当根。"
+        }
+      ],
+      "compact": [
+        "period=20"
+      ],
+      "summary": "当根之前 N 根 K 线最高价的最高值（不含当根），构成通道上沿。",
+      "pitfalls": [
+        "不含当根：5 分钟策略里 period=20 就是「这根 5 分钟收盘突破了前 20 根 5 分钟的最高点」；其它平台的唐奇安多含当根，对数时差一根",
+        "横盘震荡时，价格反复突破又跌回上轨，假突破极多，追高容易被套",
+        "N 值太小（比如 5）会频繁触发信号，N 值太大（比如 100）则信号稀少，错过行情",
+        "单独用上轨做买入信号胜率不高，最好配合成交量或其它指标过滤"
+      ]
+    },
+    {
+      "type": "DONCHIAN_MIDDLE",
+      "name": "唐奇安中轨",
+      "category": "通道与布林",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "唐奇安中轨（高低均值）窗口：取当根之前的 N 根，不含当根。"
+        }
+      ],
+      "compact": [
+        "period=20"
+      ],
+      "summary": "唐奇安通道的中轨线，本质是过去N天的价格中位数。",
+      "pitfalls": [
+        "中轨只是价格中心，没有趋势方向判断能力，单独使用容易在震荡市被假突破骗",
+        "参数周期越大，中轨越平滑，但反应越迟钝，等它给出信号行情可能已经走完",
+        "遇到极端行情（如连续涨停/跌停），中轨会严重滞后，完全失去参考意义"
+      ]
+    },
+    {
+      "type": "DONCHIAN_LOWER",
+      "name": "唐奇安下轨",
+      "category": "通道与布林",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "唐奇安下轨窗口：取当根之前的 N 根，不含当根。"
+        }
+      ],
+      "compact": [
+        "period=20"
+      ],
+      "summary": "唐奇安通道的下轨，识别市场最弱支撑位。",
+      "pitfalls": [
+        "不含当根：「收盘 < 下轨」就是收盘跌破了前 N 根的最低点；其它平台的唐奇安多含当根，对数时差一根",
+        "在单边下跌行情中，下轨会不断被跌破，你以为是支撑其实是「无底洞」，抄底容易抄在半山腰",
+        "周期设置太短（如 5 天），下轨波动剧烈，频繁被触碰，失去参考意义；周期太长（如 60 天），下轨反应迟钝，等信号出来价格已经跌了一大截"
+      ]
+    },
+    {
+      "type": "KELTNER_MIDDLE",
+      "name": "肯特纳中轨",
+      "category": "通道与布林",
+      "params": [
+        {
+          "key": "emaPeriod",
+          "default": 20,
+          "kind": "int",
+          "description": "中轨 EMA 的周期（根数）。"
+        }
+      ],
+      "compact": [
+        "emaPeriod=20"
+      ],
+      "summary": "基于EMA的通道中轨，配合上下轨判断趋势和波动。",
+      "pitfalls": [
+        "中轨本身是滞后指标，EMA周期越大滞后越明显，刚拐头时趋势可能已走完",
+        "在横盘震荡市中，中轨会被反复穿越，产生大量假信号",
+        "单独用中轨意义不大，必须结合上下轨或成交量使用"
+      ]
+    },
+    {
+      "type": "KELTNER_UPPER",
+      "name": "肯特纳上轨",
+      "category": "通道与布林",
+      "params": [
+        {
+          "key": "emaPeriod",
+          "default": 20,
+          "kind": "int",
+          "description": "中轨 EMA 的周期（根数）。"
+        },
+        {
+          "key": "atrPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "计算 ATR 的周期（根数）。"
+        },
+        {
+          "key": "multiplier",
+          "default": 2,
+          "kind": "double",
+          "description": "通道宽度为 ATR×倍数，数值越大通道越宽。"
+        }
+      ],
+      "compact": [
+        "emaPeriod=20",
+        "atrPeriod=14",
+        "multiplier=2"
+      ],
+      "summary": "基于EMA和ATR的波动通道上轨，用于识别超买和突破。",
+      "pitfalls": [
+        "在单边暴涨行情中，价格会一直贴着上轨走，过早卖出容易踏空",
+        "ATR参数太小或倍数太大时，上轨离价格太远，失去参考意义"
+      ]
+    },
+    {
+      "type": "KELTNER_LOWER",
+      "name": "肯特纳下轨",
+      "category": "通道与布林",
+      "params": [
+        {
+          "key": "emaPeriod",
+          "default": 20,
+          "kind": "int",
+          "description": "中轨 EMA 的周期（根数）。"
+        },
+        {
+          "key": "atrPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "计算 ATR 的周期（根数）。"
+        },
+        {
+          "key": "multiplier",
+          "default": 2,
+          "kind": "double",
+          "description": "通道宽度为 ATR×倍数，数值越大通道越宽。"
+        }
+      ],
+      "compact": [
+        "emaPeriod=20",
+        "atrPeriod=14",
+        "multiplier=2"
+      ],
+      "summary": "基于ATR的通道下轨，识别超卖和支撑。",
+      "pitfalls": [
+        "单边下跌趋势中，价格会贴着下轨一路向下，抄底会被套",
+        "参数敏感：ATR倍数太小会频繁触发假信号，太大则失去参考意义",
+        "横盘震荡时，下轨可能被反复穿越，产生无效信号"
+      ]
+    },
+    {
+      "type": "SUPERTREND",
+      "name": "超级趋势 SuperTrend",
+      "category": "通道与布林",
+      "params": [
+        {
+          "key": "period",
+          "default": 10,
+          "kind": "int",
+          "description": "ATR 周期"
+        },
+        {
+          "key": "multiplier",
+          "default": 3,
+          "kind": "double",
+          "description": "ATR 倍数"
+        }
+      ],
+      "compact": [
+        "period=10",
+        "multiplier=3"
+      ],
+      "summary": "按 ATR 画出的跟踪止损线，价格在线上方为多头、下方为空头。",
+      "pitfalls": [
+        "震荡市频繁翻转"
+      ]
+    },
+    {
+      "type": "CANDLE_HAMMER",
+      "name": "锤子线",
+      "category": "K线形态",
+      "params": [],
+      "compact": [],
+      "summary": "底部反转的蜡烛形态，像一把锤子。",
+      "pitfalls": [
+        "锤子线本身不是买入信号，需要次日确认（比如收阳线或高开），否则可能只是下跌中继",
+        "在上涨趋势中出现的锤子线（称为「吊颈线」）反而是见顶信号，新手容易混淆",
+        "成交量太小或处于横盘震荡区间的锤子线，反转概率很低，容易假突破"
+      ]
+    },
+    {
+      "type": "CANDLE_HANGING_MAN",
+      "name": "上吊线",
+      "category": "K线形态",
+      "params": [],
+      "compact": [],
+      "summary": "一根带长下影线的小实体K线，预示上涨行情可能反转。",
+      "pitfalls": [
+        "上吊线单独出现时可靠性不高，必须等第二天确认，否则容易被假信号骗",
+        "在强势上涨中，上吊线可能只是短暂回调，随后继续上涨，过早卖出会踏空",
+        "如果上吊线出现在震荡区间顶部，信号会大打折扣，因为本身就没有明确趋势"
+      ]
+    },
+    {
+      "type": "CANDLE_INVERTED_HAMMER",
+      "name": "倒锤线",
+      "category": "K线形态",
+      "params": [],
+      "compact": [],
+      "summary": "底部反转信号，像倒过来的锤子，预示可能见底反弹。",
+      "pitfalls": [
+        "单根K线形态可靠性较低，必须等次日确认，否则容易是下跌中继",
+        "上影线越长越好，但如果实体太大或上下影线都长，就不是标准倒锤线",
+        "在强势下跌趋势中，倒锤线可能只是短暂反弹，随后继续暴跌"
+      ]
+    },
+    {
+      "type": "CANDLE_SHOOTING_STAR",
+      "name": "流星线",
+      "category": "K线形态",
+      "params": [],
+      "compact": [],
+      "summary": "单根K线形态，高位出现长上影预示见顶。",
+      "pitfalls": [
+        "流星线单独使用胜率不高，必须等次日确认（如低开或收阴），否则容易被假信号坑",
+        "在震荡市中或上涨初期出现，可能只是正常回调，直接卖出会踏空",
+        "上影线不够长（小于实体2倍）或下影线太长，就不是标准流星线，信号失效"
+      ]
+    },
+    {
+      "type": "CANDLE_DOJI",
+      "name": "十字星",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "barCount",
+          "default": 3,
+          "kind": "int",
+          "description": "参与判定的连续 K 线根数。"
+        },
+        {
+          "key": "bodyFactor",
+          "default": 0.1,
+          "kind": "double",
+          "description": "实体相对波幅的比例阈值。"
+        }
+      ],
+      "compact": [
+        "barCount=3",
+        "bodyFactor=0.1"
+      ],
+      "summary": "开盘收盘价几乎相同，形态像十字，代表多空力量平衡。",
+      "pitfalls": [
+        "十字星在趋势中途出现时，经常只是「空中加油」，继续原方向，盲目反向操作会被打脸",
+        "单根十字星信号很弱，必须结合前后K线确认，否则假信号极多",
+        "参数「根数」设太大（如5根以上），信号太少，错过行情；设太小（1根），信号太多，全是噪音"
+      ]
+    },
+    {
+      "type": "CANDLE_BULLISH_ENGULFING",
+      "name": "看涨吞没",
+      "category": "K线形态",
+      "params": [],
+      "compact": [],
+      "summary": "一根阴线后出现一根更大的阳线，完全包住前一根，预示上涨。",
+      "pitfalls": [
+        "在上涨趋势中或横盘震荡中出现的看涨吞没，信号可靠性大幅降低，容易追高被套",
+        "两根K线实体都很小（如十字星后的小阳线），吞没形态意义不大，常是假信号",
+        "必须等阳线收盘确认，盘中看到阳线覆盖阴线就追入，尾盘可能回落失败",
+        "大熊市或连续暴跌中，看涨吞没可能只是短暂反弹，随后继续下跌，不要盲目抄底"
+      ]
+    },
+    {
+      "type": "CANDLE_BEARISH_ENGULFING",
+      "name": "看跌吞没",
+      "category": "K线形态",
+      "params": [],
+      "compact": [],
+      "summary": "一根大阴线吃掉前一根阳线，典型的顶部反转信号。",
+      "pitfalls": [
+        "在震荡市或下跌趋势中出现的看跌吞没，往往只是假信号，容易追空被套",
+        "如果第二根阴线实体不够大（只比阳线实体大一点点），反转成功率会大幅下降",
+        "必须等收盘确认，盘中看到阴线吞没阳线就入场，容易被尾盘拉升打脸"
+      ]
+    },
+    {
+      "type": "CANDLE_BULLISH_HARAMI",
+      "name": "看涨孕线",
+      "category": "K线形态",
+      "params": [],
+      "compact": [],
+      "summary": "两根K线组成的底部反转信号，预示下跌可能结束。",
+      "pitfalls": [
+        "单根形态胜率不高，尤其在震荡市中经常是假信号，必须等后续确认",
+        "第二根K线实体越小，反转力度可能越弱，小十字星形态容易失效",
+        "大趋势向下时，看涨孕线可能只是反弹中继，很快继续下跌"
+      ]
+    },
+    {
+      "type": "CANDLE_BEARISH_HARAMI",
+      "name": "看跌孕线",
+      "category": "K线形态",
+      "params": [],
+      "compact": [],
+      "summary": "两根K线组成的看跌反转形态，预示上涨可能结束。",
+      "pitfalls": [
+        "在横盘震荡市中频繁出现，但多数是假信号，盲目卖出会被来回打脸",
+        "单根形态胜率有限，必须等下一根K线确认（比如跌破孕线最低点）再行动",
+        "小周期（如5分钟）的孕线噪音极大，尽量在日线或周线使用"
+      ]
+    },
+    {
+      "type": "CANDLE_THREE_WHITE_SOLDIERS",
+      "name": "三白兵",
+      "category": "K线形态",
+      "params": [],
+      "compact": [],
+      "summary": "连续三根大阳线，预示上涨趋势强劲。",
+      "pitfalls": [
+        "在连续大涨后的高位出现三白兵，可能是主力拉高出货的陷阱，追高容易被套",
+        "如果三根阳线实体越来越小或带有长上影线，说明上涨乏力，形态可靠性降低",
+        "横盘震荡市中频繁出现类似形态，但很快被阴线吞没，容易造成假突破"
+      ]
+    },
+    {
+      "type": "CANDLE_THREE_BLACK_CROWS",
+      "name": "三只乌鸦",
+      "category": "K线形态",
+      "params": [],
+      "compact": [],
+      "summary": "连续三根阴线，预示上涨行情可能反转。",
+      "pitfalls": [
+        "在下跌趋势中出现的三只乌鸦可能是持续信号，而非反转，容易抄底被套",
+        "阴线实体不够大或带有长下影线时，信号可靠性降低，容易假信号",
+        "单看形态不结合趋势和成交量，胜率可能不足50%"
+      ]
+    },
+    {
+      "type": "CANDLE_MORNING_STAR",
+      "name": "早晨之星",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "bodyPct",
+          "default": 0.02,
+          "kind": "double",
+          "description": "长实体阈值：实体 ÷ 开盘价（0.02 = 2%）。"
+        },
+        {
+          "key": "smallBodyPct",
+          "default": 0.008,
+          "kind": "double",
+          "description": "中间那根的小实体阈值（0.008 = 0.8%）。"
+        }
+      ],
+      "compact": [
+        "bodyPct=0.02",
+        "smallBodyPct=0.008"
+      ],
+      "summary": "长阴 → 小实体 → 长阳收过第一根实体中点，下跌末端的见底组合。",
+      "pitfalls": [
+        "A 股日线真跳空少，中间那根按「实体不和第 1 根实体重叠」判，比教科书宽",
+        "单独当买卖点胜率不高，配合位置（低位 / 高位）和成交量用"
+      ]
+    },
+    {
+      "type": "CANDLE_EVENING_STAR",
+      "name": "黄昏之星",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "bodyPct",
+          "default": 0.02,
+          "kind": "double",
+          "description": "长实体阈值：实体 ÷ 开盘价（0.02 = 2%）。"
+        },
+        {
+          "key": "smallBodyPct",
+          "default": 0.008,
+          "kind": "double",
+          "description": "中间那根的小实体阈值（0.008 = 0.8%）。"
+        }
+      ],
+      "compact": [
+        "bodyPct=0.02",
+        "smallBodyPct=0.008"
+      ],
+      "summary": "长阳 → 小实体 → 长阴收破第一根实体中点，上涨末端的见顶组合。",
+      "pitfalls": [
+        "A 股日线真跳空少，中间那根按「实体不和第 1 根实体重叠」判，比教科书宽",
+        "单独当买卖点胜率不高，配合位置（低位 / 高位）和成交量用"
+      ]
+    },
+    {
+      "type": "CANDLE_BULLISH_MARUBOZU",
+      "name": "光头光脚阳线",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "bodyPct",
+          "default": 0.03,
+          "kind": "double",
+          "description": "实体 ÷ 开盘价 ≥ 它，排除开盘即最低的小阳线。"
+        }
+      ],
+      "compact": [
+        "bodyPct=0.03"
+      ],
+      "summary": "开盘即最低、收盘即最高，没有上下影线，买方全程主导、价格一路上扬。",
+      "pitfalls": [
+        "高位连续光头阳线也可能是加速赶顶"
+      ]
+    },
+    {
+      "type": "CANDLE_BEARISH_MARUBOZU",
+      "name": "光头光脚阴线",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "bodyPct",
+          "default": 0.03,
+          "kind": "double",
+          "description": "实体 ÷ 开盘价 ≥ 它，排除开盘即最高的小阴线。"
+        }
+      ],
+      "compact": [
+        "bodyPct=0.03"
+      ],
+      "summary": "开盘即最高、收盘即最低，没有上下影线，卖方全程主导、价格一路下跌。",
+      "pitfalls": [
+        "低位恐慌盘也常出现，未必继续跌"
+      ]
+    },
+    {
+      "type": "CANDLE_SPINNING_TOP",
+      "name": "陀螺线",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "bodyRatio",
+          "default": 0.3,
+          "kind": "double",
+          "description": "实体 ÷ 全长 ≤ 它。"
+        }
+      ],
+      "compact": [
+        "bodyRatio=0.3"
+      ],
+      "summary": "小实体、上下影线都比实体长，多空拉锯、方向待定。",
+      "pitfalls": [
+        "单独意义不大，要看出现的位置"
+      ]
+    },
+    {
+      "type": "CANDLE_TWEEZER_TOP",
+      "name": "平顶",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "tolerancePct",
+          "default": 0.003,
+          "kind": "double",
+          "description": "两根最高价相差不超过的比例（0.003 = 0.3%）。"
+        },
+        {
+          "key": "lookback",
+          "default": 20,
+          "kind": "int",
+          "description": "前 N 根累计上涨才算「上涨之后」。"
+        }
+      ],
+      "compact": [
+        "tolerancePct=0.003",
+        "lookback=20"
+      ],
+      "summary": "上涨之后两根 K 线最高价几乎相同、先阳后阴，上方有压力。",
+      "pitfalls": [
+        "容差太大会遍地命中"
+      ]
+    },
+    {
+      "type": "CANDLE_TWEEZER_BOTTOM",
+      "name": "平底",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "tolerancePct",
+          "default": 0.003,
+          "kind": "double",
+          "description": "两根最低价相差不超过的比例。"
+        },
+        {
+          "key": "lookback",
+          "default": 20,
+          "kind": "int",
+          "description": "前 N 根累计下跌才算「下跌之后」。"
+        }
+      ],
+      "compact": [
+        "tolerancePct=0.003",
+        "lookback=20"
+      ],
+      "summary": "下跌之后两根 K 线最低价几乎相同、先阴后阳，下方有支撑。",
+      "pitfalls": [
+        "容差太大会遍地命中"
+      ]
+    },
+    {
+      "type": "CANDLE_ISLAND_TOP",
+      "name": "岛形顶",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "minGapPct",
+          "default": 0.005,
+          "kind": "double",
+          "description": "进岛、出岛两个缺口的最小幅度。"
+        },
+        {
+          "key": "lookback",
+          "default": 10,
+          "kind": "int",
+          "description": "孤岛最多多少根 K 线。"
+        }
+      ],
+      "compact": [
+        "minGapPct=0.005",
+        "lookback=10"
+      ],
+      "summary": "向上跳空形成孤岛，随后向下跳空离开，两边留下缺口，强烈见顶信号。",
+      "pitfalls": [
+        "日线上较少见；缺口阈值过小会把普通跳空算进来"
+      ]
+    },
+    {
+      "type": "CANDLE_ISLAND_BOTTOM",
+      "name": "岛形底",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "minGapPct",
+          "default": 0.005,
+          "kind": "double",
+          "description": "进岛、出岛两个缺口的最小幅度。"
+        },
+        {
+          "key": "lookback",
+          "default": 10,
+          "kind": "int",
+          "description": "孤岛最多多少根 K 线。"
+        }
+      ],
+      "compact": [
+        "minGapPct=0.005",
+        "lookback=10"
+      ],
+      "summary": "向下跳空形成孤岛，随后向上跳空离开，强烈见底信号。",
+      "pitfalls": [
+        "日线上较少见"
+      ]
+    },
+    {
+      "type": "PATTERN_SYM_TRIANGLE",
+      "name": "对称三角形",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "minLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "形态最短跨度：第一个贴线点到突破至少多少根。默认 20。"
+        },
+        {
+          "key": "maxLookback",
+          "default": 80,
+          "kind": "int",
+          "description": "贴线的摆动点都在最近多少根以内。默认 80。"
+        },
+        {
+          "key": "convergeRatio",
+          "default": 0.65,
+          "kind": "double",
+          "description": "上下轨收敛程度阈值。"
+        },
+        {
+          "key": "breakPct",
+          "kind": "double",
+          "description": "有效突破幅度（占价比例）。默认日线 1.5%（填小数 0.015），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "breakoutSide",
+          "default": "BOTH",
+          "kind": "string",
+          "description": "选择用户语义里哪种突破成立；成立统一返回 +1。"
+        },
+        {
+          "key": "touchMin",
+          "default": 3,
+          "kind": "int",
+          "description": "每条边至少几个摆动点贴线（两点只能连一条线，第三个点才验证它）。默认 3。"
+        },
+        {
+          "key": "lineTolerancePct",
+          "default": 0.015,
+          "kind": "double",
+          "description": "画线容差：摆动点离线这么近算贴线；从第一个点到突破前，任何 K 线越过边线超过这个比例，这条线作废。默认 1.5%（0.015）。"
+        },
+        {
+          "key": "flatDriftRatio",
+          "default": 0.2,
+          "kind": "double",
+          "description": "整段形态里边线的漂移不超过起始高度的这个比例就算「平」：两边都平＝矩形，上平下升＝上升三角，上降下平＝下降三角，上降下升＝对称三角。默认 0.2。"
+        },
+        {
+          "key": "trigger",
+          "default": "BREAKOUT",
+          "kind": "select",
+          "description": "BREAKOUT＝突破当根；RETEST＝突破后回踩确认（例：昨天跳空突破、今天回踩）。"
+        },
+        {
+          "key": "retestBars",
+          "default": 5,
+          "kind": "int",
+          "description": "回踩模式：突破发生在此前多少根以内；中间不能已经踩过或收回线内。"
+        },
+        {
+          "key": "retestTolPct",
+          "kind": "double",
+          "description": "回踩模式：最低价（向下破位时最高价）回到边线这么近算踩到。默认日线 2%（0.02），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "confirmBars",
+          "default": 1,
+          "kind": "int",
+          "description": "连续多少根闭合 K 线有效突破才返回信号。"
+        },
+        {
+          "key": "breakoutBasis",
+          "default": "CLOSE",
+          "kind": "string",
+          "description": "CLOSE 使用收盘确认；HIGH_LOW 使用最高/最低价触发。"
+        },
+        {
+          "key": "atrPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "ATR 突破过滤使用的历史周期。"
+        },
+        {
+          "key": "breakAtrMultiple",
+          "default": 0,
+          "kind": "double",
+          "description": "设为 0 关闭；大于 0 时突破幅度需同时满足 ATR 倍数过滤。"
+        },
+        {
+          "key": "pivotSpan",
+          "default": 2,
+          "kind": "int",
+          "description": "触点优先按局部 swing high/low 统计，跨度越大越严格；无拐点时回退到普通贴线计数。"
+        },
+        {
+          "key": "freshBreakout",
+          "default": 1,
+          "kind": "int",
+          "description": "1＝确认那根的前一根还没突破才算（突破后不再每天重复报）；0＝站在线外就一直报（旧行为）。"
+        },
+        {
+          "key": "breakoutVolRatio",
+          "default": 1.5,
+          "kind": "double",
+          "description": "向上突破那根的量 ≥ 前 N 根均量 × 此值才算；0＝不看量。向下破位不要求放量。"
+        },
+        {
+          "key": "breakoutVolLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "放量倍数与前多少根的均量比。"
+        },
+        {
+          "key": "minPatternHeightPct",
+          "kind": "double",
+          "description": "三角形起始宽度占价格的百分比下限；太窄的「三角形」只是窄幅波动。默认日线 6%，留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "maxPatternHeightPct",
+          "kind": "double",
+          "description": "幅度上限（%），留空＝不限。与「形态最小幅度」一起圈定范围，例如只要震荡幅度 5%～20% 的箱体。"
+        }
+      ],
+      "compact": [
+        "minLookback=20",
+        "maxLookback=80",
+        "convergeRatio=0.65",
+        "breakPct",
+        "breakoutSide=BOTH",
+        "touchMin=3",
+        "lineTolerancePct=0.015",
+        "flatDriftRatio=0.2",
+        "trigger=BREAKOUT",
+        "retestBars=5",
+        "retestTolPct",
+        "confirmBars=1",
+        "breakoutBasis=CLOSE",
+        "atrPeriod=14",
+        "breakAtrMultiple=0",
+        "pivotSpan=2",
+        "freshBreakout=1",
+        "breakoutVolRatio=1.5",
+        "breakoutVolLookback=20",
+        "minPatternHeightPct",
+        "maxPatternHeightPct"
+      ],
+      "summary": "识别价格收敛形成的对称三角形，预示突破方向。",
+      "pitfalls": [
+        "2026-09-23 起默认口径收紧：只认新突破、突破幅度 ≥1.5%、向上突破要放量、形态要有足够幅度。旧口径下 W 底 / M 头约 25% 的股票日都报信号，基本是噪音；收紧后罕见，但实测事件后 10 日胜率仍在 45%–55%，形态本身预测力有限，建议与趋势 / 量能条件组合使用。",
+        "横盘震荡市容易误判，很多看似三角形其实是无趋势的矩形",
+        "突破方向不确定，即使形态完美也可能向下假突破，必须等确认",
+        "参数敏感：收敛比设太严会漏掉真形态，设太松会抓到一堆假形态"
+      ]
+    },
+    {
+      "type": "PATTERN_ASC_TRIANGLE",
+      "name": "上升三角形",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "minLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "形态最短跨度：第一个贴线点到突破至少多少根。默认 20。"
+        },
+        {
+          "key": "maxLookback",
+          "default": 80,
+          "kind": "int",
+          "description": "贴线的摆动点都在最近多少根以内。默认 80。"
+        },
+        {
+          "key": "convergeRatio",
+          "default": 0.65,
+          "kind": "double",
+          "description": "三角形收敛比例。"
+        },
+        {
+          "key": "breakPct",
+          "kind": "double",
+          "description": "向上突破确认幅度。默认日线 1.5%（填小数 0.015），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "breakoutSide",
+          "default": "UP",
+          "kind": "string",
+          "description": "选择用户语义里哪种突破成立；成立统一返回 +1。"
+        },
+        {
+          "key": "touchMin",
+          "default": 3,
+          "kind": "int",
+          "description": "每条边至少几个摆动点贴线（两点只能连一条线，第三个点才验证它）。默认 3。"
+        },
+        {
+          "key": "lineTolerancePct",
+          "default": 0.015,
+          "kind": "double",
+          "description": "画线容差：摆动点离线这么近算贴线；从第一个点到突破前，任何 K 线越过边线超过这个比例，这条线作废。默认 1.5%（0.015）。"
+        },
+        {
+          "key": "flatDriftRatio",
+          "default": 0.2,
+          "kind": "double",
+          "description": "整段形态里边线的漂移不超过起始高度的这个比例就算「平」：两边都平＝矩形，上平下升＝上升三角，上降下平＝下降三角，上降下升＝对称三角。默认 0.2。"
+        },
+        {
+          "key": "trigger",
+          "default": "BREAKOUT",
+          "kind": "select",
+          "description": "BREAKOUT＝突破当根；RETEST＝突破后回踩确认（例：昨天跳空突破、今天回踩）。"
+        },
+        {
+          "key": "retestBars",
+          "default": 5,
+          "kind": "int",
+          "description": "回踩模式：突破发生在此前多少根以内；中间不能已经踩过或收回线内。"
+        },
+        {
+          "key": "retestTolPct",
+          "kind": "double",
+          "description": "回踩模式：最低价（向下破位时最高价）回到边线这么近算踩到。默认日线 2%（0.02），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "confirmBars",
+          "default": 1,
+          "kind": "int",
+          "description": "连续多少根闭合 K 线有效突破才返回信号。"
+        },
+        {
+          "key": "breakoutBasis",
+          "default": "CLOSE",
+          "kind": "string",
+          "description": "CLOSE 使用收盘确认；HIGH_LOW 使用最高/最低价触发。"
+        },
+        {
+          "key": "atrPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "ATR 突破过滤使用的历史周期。"
+        },
+        {
+          "key": "breakAtrMultiple",
+          "default": 0,
+          "kind": "double",
+          "description": "设为 0 关闭；大于 0 时突破幅度需同时满足 ATR 倍数过滤。"
+        },
+        {
+          "key": "pivotSpan",
+          "default": 2,
+          "kind": "int",
+          "description": "触点优先按局部 swing high/low 统计，跨度越大越严格；无拐点时回退到普通贴线计数。"
+        },
+        {
+          "key": "freshBreakout",
+          "default": 1,
+          "kind": "int",
+          "description": "1＝确认那根的前一根还没突破才算（突破后不再每天重复报）；0＝站在线外就一直报（旧行为）。"
+        },
+        {
+          "key": "breakoutVolRatio",
+          "default": 1.5,
+          "kind": "double",
+          "description": "向上突破那根的量 ≥ 前 N 根均量 × 此值才算；0＝不看量。向下破位不要求放量。"
+        },
+        {
+          "key": "breakoutVolLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "放量倍数与前多少根的均量比。"
+        },
+        {
+          "key": "minPatternHeightPct",
+          "kind": "double",
+          "description": "三角形起始宽度占价格的百分比下限；太窄的「三角形」只是窄幅波动。默认日线 6%，留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "maxPatternHeightPct",
+          "kind": "double",
+          "description": "幅度上限（%），留空＝不限。与「形态最小幅度」一起圈定范围，例如只要震荡幅度 5%～20% 的箱体。"
+        }
+      ],
+      "compact": [
+        "minLookback=20",
+        "maxLookback=80",
+        "convergeRatio=0.65",
+        "breakPct",
+        "breakoutSide=UP",
+        "touchMin=3",
+        "lineTolerancePct=0.015",
+        "flatDriftRatio=0.2",
+        "trigger=BREAKOUT",
+        "retestBars=5",
+        "retestTolPct",
+        "confirmBars=1",
+        "breakoutBasis=CLOSE",
+        "atrPeriod=14",
+        "breakAtrMultiple=0",
+        "pivotSpan=2",
+        "freshBreakout=1",
+        "breakoutVolRatio=1.5",
+        "breakoutVolLookback=20",
+        "minPatternHeightPct",
+        "maxPatternHeightPct"
+      ],
+      "summary": "上升三角形是看涨的持续整理形态，预示突破上涨。",
+      "pitfalls": [
+        "2026-09-23 起默认口径收紧：只认新突破、突破幅度 ≥1.5%、向上突破要放量、形态要有足够幅度。旧口径下 W 底 / M 头约 25% 的股票日都报信号，基本是噪音；收紧后罕见，但实测事件后 10 日胜率仍在 45%–55%，形态本身预测力有限，建议与趋势 / 量能条件组合使用。",
+        "横盘震荡或下跌趋势中出现的类似形态很可能是假突破，容易追高被套",
+        "突破后如果成交量没有放大，可能是假突破，需要等待确认",
+        "参数设置不当（如窗口太小）会识别出大量无效形态，导致频繁交易亏损"
+      ]
+    },
+    {
+      "type": "PATTERN_DESC_TRIANGLE",
+      "name": "下降三角形",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "minLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "形态最短跨度：第一个贴线点到突破至少多少根。默认 20。"
+        },
+        {
+          "key": "maxLookback",
+          "default": 80,
+          "kind": "int",
+          "description": "贴线的摆动点都在最近多少根以内。默认 80。"
+        },
+        {
+          "key": "convergeRatio",
+          "default": 0.65,
+          "kind": "double",
+          "description": "三角形收敛比例。"
+        },
+        {
+          "key": "breakPct",
+          "kind": "double",
+          "description": "向下突破确认幅度。默认日线 1.5%（填小数 0.015），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "breakoutSide",
+          "default": "DOWN",
+          "kind": "string",
+          "description": "选择用户语义里哪种突破成立；成立统一返回 +1。"
+        },
+        {
+          "key": "touchMin",
+          "default": 3,
+          "kind": "int",
+          "description": "每条边至少几个摆动点贴线（两点只能连一条线，第三个点才验证它）。默认 3。"
+        },
+        {
+          "key": "lineTolerancePct",
+          "default": 0.015,
+          "kind": "double",
+          "description": "画线容差：摆动点离线这么近算贴线；从第一个点到突破前，任何 K 线越过边线超过这个比例，这条线作废。默认 1.5%（0.015）。"
+        },
+        {
+          "key": "flatDriftRatio",
+          "default": 0.2,
+          "kind": "double",
+          "description": "整段形态里边线的漂移不超过起始高度的这个比例就算「平」：两边都平＝矩形，上平下升＝上升三角，上降下平＝下降三角，上降下升＝对称三角。默认 0.2。"
+        },
+        {
+          "key": "trigger",
+          "default": "BREAKOUT",
+          "kind": "select",
+          "description": "BREAKOUT＝突破当根；RETEST＝突破后回踩确认（例：昨天跳空突破、今天回踩）。"
+        },
+        {
+          "key": "retestBars",
+          "default": 5,
+          "kind": "int",
+          "description": "回踩模式：突破发生在此前多少根以内；中间不能已经踩过或收回线内。"
+        },
+        {
+          "key": "retestTolPct",
+          "kind": "double",
+          "description": "回踩模式：最低价（向下破位时最高价）回到边线这么近算踩到。默认日线 2%（0.02），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "confirmBars",
+          "default": 1,
+          "kind": "int",
+          "description": "连续多少根闭合 K 线有效突破才返回信号。"
+        },
+        {
+          "key": "breakoutBasis",
+          "default": "CLOSE",
+          "kind": "string",
+          "description": "CLOSE 使用收盘确认；HIGH_LOW 使用最高/最低价触发。"
+        },
+        {
+          "key": "atrPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "ATR 突破过滤使用的历史周期。"
+        },
+        {
+          "key": "breakAtrMultiple",
+          "default": 0,
+          "kind": "double",
+          "description": "设为 0 关闭；大于 0 时突破幅度需同时满足 ATR 倍数过滤。"
+        },
+        {
+          "key": "pivotSpan",
+          "default": 2,
+          "kind": "int",
+          "description": "触点优先按局部 swing high/low 统计，跨度越大越严格；无拐点时回退到普通贴线计数。"
+        },
+        {
+          "key": "freshBreakout",
+          "default": 1,
+          "kind": "int",
+          "description": "1＝确认那根的前一根还没突破才算（突破后不再每天重复报）；0＝站在线外就一直报（旧行为）。"
+        },
+        {
+          "key": "breakoutVolRatio",
+          "default": 1.5,
+          "kind": "double",
+          "description": "向上突破那根的量 ≥ 前 N 根均量 × 此值才算；0＝不看量。向下破位不要求放量。"
+        },
+        {
+          "key": "breakoutVolLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "放量倍数与前多少根的均量比。"
+        },
+        {
+          "key": "minPatternHeightPct",
+          "kind": "double",
+          "description": "三角形起始宽度占价格的百分比下限；太窄的「三角形」只是窄幅波动。默认日线 6%，留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "maxPatternHeightPct",
+          "kind": "double",
+          "description": "幅度上限（%），留空＝不限。与「形态最小幅度」一起圈定范围，例如只要震荡幅度 5%～20% 的箱体。"
+        }
+      ],
+      "compact": [
+        "minLookback=20",
+        "maxLookback=80",
+        "convergeRatio=0.65",
+        "breakPct",
+        "breakoutSide=DOWN",
+        "touchMin=3",
+        "lineTolerancePct=0.015",
+        "flatDriftRatio=0.2",
+        "trigger=BREAKOUT",
+        "retestBars=5",
+        "retestTolPct",
+        "confirmBars=1",
+        "breakoutBasis=CLOSE",
+        "atrPeriod=14",
+        "breakAtrMultiple=0",
+        "pivotSpan=2",
+        "freshBreakout=1",
+        "breakoutVolRatio=1.5",
+        "breakoutVolLookback=20",
+        "minPatternHeightPct",
+        "maxPatternHeightPct"
+      ],
+      "summary": "下降三角形是一种看跌的持续整理形态。",
+      "pitfalls": [
+        "2026-09-23 起默认口径收紧：只认新突破、突破幅度 ≥1.5%、向上突破要放量、形态要有足够幅度。旧口径下 W 底 / M 头约 25% 的股票日都报信号，基本是噪音；收紧后罕见，但实测事件后 10 日胜率仍在 45%–55%，形态本身预测力有限，建议与趋势 / 量能条件组合使用。",
+        "如果价格向上突破上边线，可能演变为反转形态，死板看跌会踏空",
+        "形态未完成时（如只碰了一次下边线）就入场，成功率很低",
+        "在强势上涨趋势中出现的下降三角形可能是骗线，容易假跌破"
+      ]
+    },
+    {
+      "type": "PATTERN_RISING_FLAG",
+      "name": "上升旗形（多头旗）",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "minLookback",
+          "kind": "int",
+          "description": "开始识别需要的最少行情根数；回溯是最大搜索窗口。留空沿用原回溯预热口径，C 端普通形态 40、三重顶底 70。旗形仍须放得下旗杆、最短旗面与确认根数。"
+        },
+        {
+          "key": "flagMinBars",
+          "default": 0,
+          "kind": "int",
+          "description": "大于 0 时旗面从旗杆最高点（下降旗：最低点）起算，长度在「旗面最少根数」到「旗面回溯」之间自动找（长的优先）；0＝旧口径，旗面固定为「旗面回溯」根。"
+        },
+        {
+          "key": "lookback",
+          "default": 50,
+          "kind": "int",
+          "description": "最大回溯搜索窗口；最少行情根数未填时也作为预热门槛。"
+        },
+        {
+          "key": "poleLookback",
+          "default": 15,
+          "kind": "int",
+          "description": "旗杆（急涨/跌）段长度。"
+        },
+        {
+          "key": "flagLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "旗面盘整段长度。"
+        },
+        {
+          "key": "poleMoveMinPct",
+          "kind": "double",
+          "description": "旗杆最小涨跌幅（百分比）。默认日线 15（%），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "channelSlopeMaxAbsPct",
+          "default": 0.15,
+          "kind": "double",
+          "description": "旗面通道最大绝对斜率。"
+        },
+        {
+          "key": "breakPct",
+          "kind": "double",
+          "description": "突破确认幅度。默认日线 1.5%（填小数 0.015），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "breakoutSide",
+          "default": "UP",
+          "kind": "select",
+          "description": "用户语义规则要求的突破方向；命中后统一输出 +1。"
+        },
+        {
+          "key": "qualityMin",
+          "default": 0.6,
+          "kind": "double",
+          "description": "形态质量过滤阈值；设为 0 时弱形态也允许返回信号。"
+        },
+        {
+          "key": "touchMin",
+          "default": 2,
+          "kind": "int",
+          "description": "旗面上下轨各自期望的最少触点，用于质量评分。"
+        },
+        {
+          "key": "lineTolerancePct",
+          "default": 0.015,
+          "kind": "double",
+          "description": "触点和残差评分使用的贴线容差，占价格比例。"
+        },
+        {
+          "key": "confirmBars",
+          "default": 1,
+          "kind": "int",
+          "description": "连续多少根闭合 K 线有效突破才返回信号。"
+        },
+        {
+          "key": "breakoutBasis",
+          "default": "CLOSE",
+          "kind": "string",
+          "description": "CLOSE 使用收盘确认；HIGH_LOW 使用最高/最低价触发。"
+        },
+        {
+          "key": "atrPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "ATR 突破过滤使用的历史周期。"
+        },
+        {
+          "key": "breakAtrMultiple",
+          "default": 0,
+          "kind": "double",
+          "description": "设为 0 关闭；大于 0 时突破幅度需同时满足 ATR 倍数过滤。"
+        },
+        {
+          "key": "pivotSpan",
+          "default": 2,
+          "kind": "int",
+          "description": "触点优先按局部 swing high/low 统计，跨度越大越严格；无拐点时回退到普通贴线计数。"
+        },
+        {
+          "key": "flagRetraceMaxPct",
+          "default": 50,
+          "kind": "double",
+          "description": "旗面相对旗杆的最大回撤比例；超过该值视为旗形失效。"
+        },
+        {
+          "key": "freshBreakout",
+          "default": 1,
+          "kind": "int",
+          "description": "1＝确认那根的前一根还没突破才算（突破后不再每天重复报）；0＝站在线外就一直报（旧行为）。"
+        },
+        {
+          "key": "breakoutVolRatio",
+          "default": 1.5,
+          "kind": "double",
+          "description": "向上突破那根的量 ≥ 前 N 根均量 × 此值才算；0＝不看量。向下破位不要求放量。"
+        },
+        {
+          "key": "breakoutVolLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "放量倍数与前多少根的均量比。"
+        }
+      ],
+      "compact": [
+        "minLookback",
+        "flagMinBars=0",
+        "lookback=50",
+        "poleLookback=15",
+        "flagLookback=20",
+        "poleMoveMinPct",
+        "channelSlopeMaxAbsPct=0.15",
+        "breakPct",
+        "breakoutSide=UP",
+        "qualityMin=0.6",
+        "touchMin=2",
+        "lineTolerancePct=0.015",
+        "confirmBars=1",
+        "breakoutBasis=CLOSE",
+        "atrPeriod=14",
+        "breakAtrMultiple=0",
+        "pivotSpan=2",
+        "flagRetraceMaxPct=50",
+        "freshBreakout=1",
+        "breakoutVolRatio=1.5",
+        "breakoutVolLookback=20"
+      ],
+      "summary": "上升旗形是看涨持续形态，像旗杆+旗面整理后突破。",
+      "pitfalls": [
+        "2026-09-23 起默认口径收紧：只认新突破、突破幅度 ≥1.5%、向上突破要放量、形态要有足够幅度。旧口径下 W 底 / M 头约 25% 的股票日都报信号，基本是噪音；收紧后罕见，但实测事件后 10 日胜率仍在 45%–55%，形态本身预测力有限，建议与趋势 / 量能条件组合使用。",
+        "旗面整理可能演变成反转（如双顶），尤其当回撤超过旗杆的60%时",
+        "参数敏感：不同股票或周期需要调整旗杆长度和通道斜率，否则容易误判"
+      ]
+    },
+    {
+      "type": "PATTERN_FALLING_FLAG",
+      "name": "下降旗形（空头旗）",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "minLookback",
+          "kind": "int",
+          "description": "开始识别需要的最少行情根数；回溯是最大搜索窗口。留空沿用原回溯预热口径，C 端普通形态 40、三重顶底 70。旗形仍须放得下旗杆、最短旗面与确认根数。"
+        },
+        {
+          "key": "flagMinBars",
+          "default": 0,
+          "kind": "int",
+          "description": "大于 0 时旗面从旗杆最高点（下降旗：最低点）起算，长度在「旗面最少根数」到「旗面回溯」之间自动找（长的优先）；0＝旧口径，旗面固定为「旗面回溯」根。"
+        },
+        {
+          "key": "lookback",
+          "default": 50,
+          "kind": "int",
+          "description": "最大回溯搜索窗口；最少行情根数未填时也作为预热门槛。"
+        },
+        {
+          "key": "poleLookback",
+          "default": 15,
+          "kind": "int",
+          "description": "旗杆段长度。"
+        },
+        {
+          "key": "flagLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "旗面段长度。"
+        },
+        {
+          "key": "poleMoveMinPct",
+          "kind": "double",
+          "description": "旗杆最小波动。默认日线 15（%），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "channelSlopeMaxAbsPct",
+          "default": 0.15,
+          "kind": "double",
+          "description": "旗面通道最大绝对斜率。"
+        },
+        {
+          "key": "breakPct",
+          "kind": "double",
+          "description": "突破确认幅度。默认日线 1.5%（填小数 0.015），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "breakoutSide",
+          "default": "DOWN",
+          "kind": "select",
+          "description": "用户语义规则要求的突破方向；命中后统一输出 +1。"
+        },
+        {
+          "key": "qualityMin",
+          "default": 0.6,
+          "kind": "double",
+          "description": "形态质量过滤阈值；设为 0 时弱形态也允许返回信号。"
+        },
+        {
+          "key": "touchMin",
+          "default": 2,
+          "kind": "int",
+          "description": "旗面上下轨各自期望的最少触点，用于质量评分。"
+        },
+        {
+          "key": "lineTolerancePct",
+          "default": 0.015,
+          "kind": "double",
+          "description": "触点和残差评分使用的贴线容差，占价格比例。"
+        },
+        {
+          "key": "confirmBars",
+          "default": 1,
+          "kind": "int",
+          "description": "连续多少根闭合 K 线有效突破才返回信号。"
+        },
+        {
+          "key": "breakoutBasis",
+          "default": "CLOSE",
+          "kind": "string",
+          "description": "CLOSE 使用收盘确认；HIGH_LOW 使用最高/最低价触发。"
+        },
+        {
+          "key": "atrPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "ATR 突破过滤使用的历史周期。"
+        },
+        {
+          "key": "breakAtrMultiple",
+          "default": 0,
+          "kind": "double",
+          "description": "设为 0 关闭；大于 0 时突破幅度需同时满足 ATR 倍数过滤。"
+        },
+        {
+          "key": "pivotSpan",
+          "default": 2,
+          "kind": "int",
+          "description": "触点优先按局部 swing high/low 统计，跨度越大越严格；无拐点时回退到普通贴线计数。"
+        },
+        {
+          "key": "flagRetraceMaxPct",
+          "default": 50,
+          "kind": "double",
+          "description": "旗面相对旗杆的最大回撤比例；超过该值视为旗形失效。"
+        },
+        {
+          "key": "freshBreakout",
+          "default": 1,
+          "kind": "int",
+          "description": "1＝确认那根的前一根还没突破才算（突破后不再每天重复报）；0＝站在线外就一直报（旧行为）。"
+        },
+        {
+          "key": "breakoutVolRatio",
+          "default": 1.5,
+          "kind": "double",
+          "description": "向上突破那根的量 ≥ 前 N 根均量 × 此值才算；0＝不看量。向下破位不要求放量。"
+        },
+        {
+          "key": "breakoutVolLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "放量倍数与前多少根的均量比。"
+        }
+      ],
+      "compact": [
+        "minLookback",
+        "flagMinBars=0",
+        "lookback=50",
+        "poleLookback=15",
+        "flagLookback=20",
+        "poleMoveMinPct",
+        "channelSlopeMaxAbsPct=0.15",
+        "breakPct",
+        "breakoutSide=DOWN",
+        "qualityMin=0.6",
+        "touchMin=2",
+        "lineTolerancePct=0.015",
+        "confirmBars=1",
+        "breakoutBasis=CLOSE",
+        "atrPeriod=14",
+        "breakAtrMultiple=0",
+        "pivotSpan=2",
+        "flagRetraceMaxPct=50",
+        "freshBreakout=1",
+        "breakoutVolRatio=1.5",
+        "breakoutVolLookback=20"
+      ],
+      "summary": "下降旗形是下跌中继形态，预示价格将继续下跌。",
+      "pitfalls": [
+        "2026-09-23 起默认口径收紧：只认新突破、突破幅度 ≥1.5%、向上突破要放量、形态要有足够幅度。旧口径下 W 底 / M 头约 25% 的股票日都报信号，基本是噪音；收紧后罕见，但实测事件后 10 日胜率仍在 45%–55%，形态本身预测力有限，建议与趋势 / 量能条件组合使用。",
+        "旗形形态在震荡市中容易误判，可能演变为反转形态（如双底），导致做空被套",
+        "旗杆长度要求严格，如果前期下跌幅度不够（小于2%），形态可靠性大打折扣",
+        "通道斜率参数敏感，设得太小会漏掉有效形态，设得太大则混入太多假信号"
+      ]
+    },
+    {
+      "type": "PATTERN_RECTANGLE",
+      "name": "矩形震荡（区间突破）",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "minLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "形态最短跨度：第一个贴线点到突破至少多少根。默认 20。"
+        },
+        {
+          "key": "maxLookback",
+          "default": 80,
+          "kind": "int",
+          "description": "贴线的摆动点都在最近多少根以内。默认 80。"
+        },
+        {
+          "key": "breakPct",
+          "kind": "double",
+          "description": "突破区间确认幅度。默认日线 1.5%（填小数 0.015），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "breakoutSide",
+          "default": "BOTH",
+          "kind": "string",
+          "description": "选择用户语义里哪种突破成立；成立统一返回 +1。"
+        },
+        {
+          "key": "touchMin",
+          "default": 3,
+          "kind": "int",
+          "description": "每条边至少几个摆动点贴线（两点只能连一条线，第三个点才验证它）。默认 3。"
+        },
+        {
+          "key": "lineTolerancePct",
+          "default": 0.015,
+          "kind": "double",
+          "description": "画线容差：摆动点离线这么近算贴线；从第一个点到突破前，任何 K 线越过边线超过这个比例，这条线作废。默认 1.5%（0.015）。"
+        },
+        {
+          "key": "flatDriftRatio",
+          "default": 0.2,
+          "kind": "double",
+          "description": "整段形态里边线的漂移不超过起始高度的这个比例就算「平」：两边都平＝矩形，上平下升＝上升三角，上降下平＝下降三角，上降下升＝对称三角。默认 0.2。"
+        },
+        {
+          "key": "trigger",
+          "default": "BREAKOUT",
+          "kind": "select",
+          "description": "BREAKOUT＝突破当根；RETEST＝突破后回踩确认（例：昨天跳空突破、今天回踩）。"
+        },
+        {
+          "key": "retestBars",
+          "default": 5,
+          "kind": "int",
+          "description": "回踩模式：突破发生在此前多少根以内；中间不能已经踩过或收回线内。"
+        },
+        {
+          "key": "retestTolPct",
+          "kind": "double",
+          "description": "回踩模式：最低价（向下破位时最高价）回到边线这么近算踩到。默认日线 2%（0.02），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "confirmBars",
+          "default": 1,
+          "kind": "int",
+          "description": "连续多少根闭合 K 线有效突破才返回信号。"
+        },
+        {
+          "key": "breakoutBasis",
+          "default": "CLOSE",
+          "kind": "string",
+          "description": "CLOSE 使用收盘确认；HIGH_LOW 使用最高/最低价触发。"
+        },
+        {
+          "key": "atrPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "ATR 突破过滤使用的历史周期。"
+        },
+        {
+          "key": "breakAtrMultiple",
+          "default": 0,
+          "kind": "double",
+          "description": "设为 0 关闭；大于 0 时突破幅度需同时满足 ATR 倍数过滤。"
+        },
+        {
+          "key": "pivotSpan",
+          "default": 2,
+          "kind": "int",
+          "description": "触点优先按局部 swing high/low 统计，跨度越大越严格；无拐点时回退到普通贴线计数。"
+        },
+        {
+          "key": "freshBreakout",
+          "default": 1,
+          "kind": "int",
+          "description": "1＝确认那根的前一根还没突破才算（突破后不再每天重复报）；0＝站在线外就一直报（旧行为）。"
+        },
+        {
+          "key": "breakoutVolRatio",
+          "default": 1.5,
+          "kind": "double",
+          "description": "向上突破那根的量 ≥ 前 N 根均量 × 此值才算；0＝不看量。向下破位不要求放量。"
+        },
+        {
+          "key": "breakoutVolLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "放量倍数与前多少根的均量比。"
+        },
+        {
+          "key": "minPatternHeightPct",
+          "kind": "double",
+          "description": "箱体高度占价格的百分比下限。默认日线 4%，留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "maxPatternHeightPct",
+          "kind": "double",
+          "description": "幅度上限（%），留空＝不限。与「形态最小幅度」一起圈定范围，例如只要震荡幅度 5%～20% 的箱体。"
+        }
+      ],
+      "compact": [
+        "minLookback=20",
+        "maxLookback=80",
+        "breakPct",
+        "breakoutSide=BOTH",
+        "touchMin=3",
+        "lineTolerancePct=0.015",
+        "flatDriftRatio=0.2",
+        "trigger=BREAKOUT",
+        "retestBars=5",
+        "retestTolPct",
+        "confirmBars=1",
+        "breakoutBasis=CLOSE",
+        "atrPeriod=14",
+        "breakAtrMultiple=0",
+        "pivotSpan=2",
+        "freshBreakout=1",
+        "breakoutVolRatio=1.5",
+        "breakoutVolLookback=20",
+        "minPatternHeightPct",
+        "maxPatternHeightPct"
+      ],
+      "summary": "识别股价横盘震荡区间，捕捉突破后的趋势行情。",
+      "pitfalls": [
+        "2026-09-23 起默认口径收紧：只认新突破、突破幅度 ≥1.5%、向上突破要放量、形态要有足够幅度。旧口径下 W 底 / M 头约 25% 的股票日都报信号，基本是噪音；收紧后罕见，但实测事件后 10 日胜率仍在 45%–55%，形态本身预测力有限，建议与趋势 / 量能条件组合使用。",
+        "震荡区间可能被误判，尤其在趋势中途的短暂整理中，容易把回调当区间",
+        "假突破频繁，尤其在市场波动率低时，突破后立刻回抽打脸",
+        "参数敏感，不同股票的最佳参数差异大，需要分别优化",
+        "区间持续时间越长，突破后的爆发力越强，但等待时间也越久，容易错过其他机会"
+      ]
+    },
+    {
+      "type": "PATTERN_HEAD_SHOULDERS_TOP",
+      "name": "头肩顶（颈线跌破）",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "minLookback",
+          "kind": "int",
+          "description": "开始识别需要的最少行情根数；回溯是最大搜索窗口。留空沿用原回溯预热口径，C 端普通形态 40、三重顶底 70。旗形仍须放得下旗杆、最短旗面与确认根数。"
+        },
+        {
+          "key": "minSpanBars",
+          "default": 0,
+          "kind": "int",
+          "description": "从第一个顶（底 / 左肩）到突破至少多少根 K 线；0＝不限。形态太短噪音大，C 端默认 80。"
+        },
+        {
+          "key": "maxSpanBars",
+          "default": 0,
+          "kind": "int",
+          "description": "从第一个顶（底 / 左肩）到突破至多多少根 K 线；0＝不限。一年的大形态里面会套很多别的图形，C 端默认 200。小周期做短线可以调小。"
+        },
+        {
+          "key": "lookback",
+          "default": 60,
+          "kind": "int",
+          "description": "最大回溯搜索窗口；最少行情根数未填时也作为预热门槛。"
+        },
+        {
+          "key": "headDiffPct",
+          "kind": "double",
+          "description": "头部峰值匹配容差。默认日线 5%（0.05），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "shoulderSymPct",
+          "kind": "double",
+          "description": "两肩价格差上限（占价格的比例，如 0.05＝5%）。留空＝不看价格差，只按「高低差/形态高度」判对称（大形态两肩差 6%～7% 很常见，按价格卡会漏）。"
+        },
+        {
+          "key": "zigzagPct",
+          "kind": "double",
+          "description": "ZigZag 转折幅度：价格从一个高点（低点）反向走出这么多，才把它认作一个肩。默认日线 5%（0.05），调大只认大波段、调小连小波段也算。留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "peakSymRatio",
+          "default": 0.35,
+          "kind": "double",
+          "description": "两肩高低差不超过形态高度（肩到颈线的距离）的这个比例；默认 0.35。按比例判，大形态、小形态口径一致。"
+        },
+        {
+          "key": "minPatternBars",
+          "default": 8,
+          "kind": "int",
+          "description": "两肩之间至少隔多少根（头肩：左肩到头、头到右肩各至少一半）；默认 8，挡住两三天内的小抖动。"
+        },
+        {
+          "key": "necklineBreakPct",
+          "kind": "double",
+          "description": "颈线有效跌破幅度。默认日线 1.5%（0.015），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "breakoutSide",
+          "default": "DOWN",
+          "kind": "select",
+          "description": "头肩顶默认要求颈线向下跌破；成立后统一输出 +1。"
+        },
+        {
+          "key": "qualityMin",
+          "default": 0.6,
+          "kind": "double",
+          "description": "形态质量过滤阈值；设为 0 时弱形态也允许返回信号。"
+        },
+        {
+          "key": "confirmBars",
+          "default": 1,
+          "kind": "int",
+          "description": "连续多少根闭合 K 线有效突破才返回信号。"
+        },
+        {
+          "key": "breakoutBasis",
+          "default": "CLOSE",
+          "kind": "string",
+          "description": "CLOSE 使用收盘确认；HIGH_LOW 使用最高/最低价触发。"
+        },
+        {
+          "key": "atrPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "ATR 突破过滤使用的历史周期。"
+        },
+        {
+          "key": "breakAtrMultiple",
+          "default": 0,
+          "kind": "double",
+          "description": "设为 0 关闭；大于 0 时突破幅度需同时满足 ATR 倍数过滤。"
+        },
+        {
+          "key": "freshBreakout",
+          "default": 1,
+          "kind": "int",
+          "description": "1＝确认那根的前一根还没突破才算（突破后不再每天重复报）；0＝站在线外就一直报（旧行为）。"
+        },
+        {
+          "key": "breakoutVolRatio",
+          "default": 1.5,
+          "kind": "double",
+          "description": "向上突破那根的量 ≥ 前 N 根均量 × 此值才算；0＝不看量。向下破位不要求放量。"
+        },
+        {
+          "key": "breakoutVolLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "放量倍数与前多少根的均量比。"
+        },
+        {
+          "key": "minPatternHeightPct",
+          "kind": "double",
+          "description": "头部离颈线的距离占价格的百分比下限。默认日线 8%，留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "maxPatternHeightPct",
+          "kind": "double",
+          "description": "幅度上限（%），留空＝不限。与「形态最小幅度」一起圈定范围，例如只要震荡幅度 5%～20% 的箱体。"
+        }
+      ],
+      "compact": [
+        "minLookback",
+        "minSpanBars=0",
+        "maxSpanBars=0",
+        "lookback=60",
+        "headDiffPct",
+        "shoulderSymPct",
+        "zigzagPct",
+        "peakSymRatio=0.35",
+        "minPatternBars=8",
+        "necklineBreakPct",
+        "breakoutSide=DOWN",
+        "qualityMin=0.6",
+        "confirmBars=1",
+        "breakoutBasis=CLOSE",
+        "atrPeriod=14",
+        "breakAtrMultiple=0",
+        "freshBreakout=1",
+        "breakoutVolRatio=1.5",
+        "breakoutVolLookback=20",
+        "minPatternHeightPct",
+        "maxPatternHeightPct"
+      ],
+      "summary": "经典顶部反转形态，颈线跌破确认趋势转空。",
+      "pitfalls": [
+        "2026-09-23 起默认口径收紧：只认新突破、突破幅度 ≥1.5%、向上突破要放量、形态要有足够幅度。旧口径下 W 底 / M 头约 25% 的股票日都报信号，基本是噪音；收紧后罕见，但实测事件后 10 日胜率仍在 45%–55%，形态本身预测力有限，建议与趋势 / 量能条件组合使用。",
+        "在牛市中假跌破很多，可能刚止损就反弹，一定要等确认根数",
+        "形态识别主观性强，参数调不好会频繁出现假形态，胜率可能不到40%"
+      ]
+    },
+    {
+      "type": "PATTERN_HEAD_SHOULDERS_BOTTOM",
+      "name": "头肩底（颈线突破）",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "minLookback",
+          "kind": "int",
+          "description": "开始识别需要的最少行情根数；回溯是最大搜索窗口。留空沿用原回溯预热口径，C 端普通形态 40、三重顶底 70。旗形仍须放得下旗杆、最短旗面与确认根数。"
+        },
+        {
+          "key": "minSpanBars",
+          "default": 0,
+          "kind": "int",
+          "description": "从第一个顶（底 / 左肩）到突破至少多少根 K 线；0＝不限。形态太短噪音大，C 端默认 80。"
+        },
+        {
+          "key": "maxSpanBars",
+          "default": 0,
+          "kind": "int",
+          "description": "从第一个顶（底 / 左肩）到突破至多多少根 K 线；0＝不限。一年的大形态里面会套很多别的图形，C 端默认 200。小周期做短线可以调小。"
+        },
+        {
+          "key": "lookback",
+          "default": 60,
+          "kind": "int",
+          "description": "最大回溯搜索窗口；最少行情根数未填时也作为预热门槛。"
+        },
+        {
+          "key": "headDiffPct",
+          "kind": "double",
+          "description": "底部区域匹配容差。默认日线 5%（0.05），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "shoulderSymPct",
+          "kind": "double",
+          "description": "两肩价格差上限（占价格的比例，如 0.05＝5%）。留空＝不看价格差，只按「高低差/形态高度」判对称（大形态两肩差 6%～7% 很常见，按价格卡会漏）。"
+        },
+        {
+          "key": "zigzagPct",
+          "kind": "double",
+          "description": "ZigZag 转折幅度：价格从一个高点（低点）反向走出这么多，才把它认作一个肩。默认日线 5%（0.05），调大只认大波段、调小连小波段也算。留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "peakSymRatio",
+          "default": 0.35,
+          "kind": "double",
+          "description": "两肩高低差不超过形态高度（肩到颈线的距离）的这个比例；默认 0.35。按比例判，大形态、小形态口径一致。"
+        },
+        {
+          "key": "minPatternBars",
+          "default": 8,
+          "kind": "int",
+          "description": "两肩之间至少隔多少根（头肩：左肩到头、头到右肩各至少一半）；默认 8，挡住两三天内的小抖动。"
+        },
+        {
+          "key": "necklineBreakPct",
+          "kind": "double",
+          "description": "颈线有效突破幅度。默认日线 1.5%（0.015），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "breakoutSide",
+          "default": "UP",
+          "kind": "select",
+          "description": "头肩底默认要求颈线向上突破；成立后统一输出 +1。"
+        },
+        {
+          "key": "qualityMin",
+          "default": 0.6,
+          "kind": "double",
+          "description": "形态质量过滤阈值；设为 0 时弱形态也允许返回信号。"
+        },
+        {
+          "key": "confirmBars",
+          "default": 1,
+          "kind": "int",
+          "description": "连续多少根闭合 K 线有效突破才返回信号。"
+        },
+        {
+          "key": "breakoutBasis",
+          "default": "CLOSE",
+          "kind": "string",
+          "description": "CLOSE 使用收盘确认；HIGH_LOW 使用最高/最低价触发。"
+        },
+        {
+          "key": "atrPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "ATR 突破过滤使用的历史周期。"
+        },
+        {
+          "key": "breakAtrMultiple",
+          "default": 0,
+          "kind": "double",
+          "description": "设为 0 关闭；大于 0 时突破幅度需同时满足 ATR 倍数过滤。"
+        },
+        {
+          "key": "freshBreakout",
+          "default": 1,
+          "kind": "int",
+          "description": "1＝确认那根的前一根还没突破才算（突破后不再每天重复报）；0＝站在线外就一直报（旧行为）。"
+        },
+        {
+          "key": "breakoutVolRatio",
+          "default": 1.5,
+          "kind": "double",
+          "description": "向上突破那根的量 ≥ 前 N 根均量 × 此值才算；0＝不看量。向下破位不要求放量。"
+        },
+        {
+          "key": "breakoutVolLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "放量倍数与前多少根的均量比。"
+        },
+        {
+          "key": "minPatternHeightPct",
+          "kind": "double",
+          "description": "头部离颈线的距离占价格的百分比下限。默认日线 8%，留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "maxPatternHeightPct",
+          "kind": "double",
+          "description": "幅度上限（%），留空＝不限。与「形态最小幅度」一起圈定范围，例如只要震荡幅度 5%～20% 的箱体。"
+        }
+      ],
+      "compact": [
+        "minLookback",
+        "minSpanBars=0",
+        "maxSpanBars=0",
+        "lookback=60",
+        "headDiffPct",
+        "shoulderSymPct",
+        "zigzagPct",
+        "peakSymRatio=0.35",
+        "minPatternBars=8",
+        "necklineBreakPct",
+        "breakoutSide=UP",
+        "qualityMin=0.6",
+        "confirmBars=1",
+        "breakoutBasis=CLOSE",
+        "atrPeriod=14",
+        "breakAtrMultiple=0",
+        "freshBreakout=1",
+        "breakoutVolRatio=1.5",
+        "breakoutVolLookback=20",
+        "minPatternHeightPct",
+        "maxPatternHeightPct"
+      ],
+      "summary": "经典反转形态，突破颈线后看涨。",
+      "pitfalls": [
+        "2026-09-23 起默认口径收紧：只认新突破、突破幅度 ≥1.5%、向上突破要放量、形态要有足够幅度。旧口径下 W 底 / M 头约 25% 的股票日都报信号，基本是噪音；收紧后罕见，但实测事件后 10 日胜率仍在 45%–55%，形态本身预测力有限，建议与趋势 / 量能条件组合使用。",
+        "假突破频发：颈线突破后可能回踩甚至跌破，需要等待确认（如连续站上颈线）",
+        "形态主观性强：不同人画出的肩和颈线可能不同，容易陷入「看图说话」的陷阱",
+        "横盘震荡市失效：在无趋势行情中，头肩底形态成功率会大幅下降"
+      ]
+    },
+    {
+      "type": "PATTERN_W_BOTTOM",
+      "name": "W 底（回升突破）",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "minLookback",
+          "kind": "int",
+          "description": "开始识别需要的最少行情根数；回溯是最大搜索窗口。留空沿用原回溯预热口径，C 端普通形态 40、三重顶底 70。旗形仍须放得下旗杆、最短旗面与确认根数。"
+        },
+        {
+          "key": "minSpanBars",
+          "default": 0,
+          "kind": "int",
+          "description": "从第一个顶（底 / 左肩）到突破至少多少根 K 线；0＝不限。形态太短噪音大，C 端默认 80。"
+        },
+        {
+          "key": "maxSpanBars",
+          "default": 0,
+          "kind": "int",
+          "description": "从第一个顶（底 / 左肩）到突破至多多少根 K 线；0＝不限。一年的大形态里面会套很多别的图形，C 端默认 200。小周期做短线可以调小。"
+        },
+        {
+          "key": "lookback",
+          "default": 60,
+          "kind": "int",
+          "description": "最大回溯搜索窗口；最少行情根数未填时也作为预热门槛。"
+        },
+        {
+          "key": "ridgeDiffPct",
+          "kind": "double",
+          "description": "中间反弹高点容差。默认日线 8%（0.08），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "lowSymPct",
+          "kind": "double",
+          "description": "两底价格差上限（占价格的比例，如 0.05＝5%）。留空＝不看价格差，只按「高低差/形态高度」判对称（大形态两底差 6%～7% 很常见，按价格卡会漏）。"
+        },
+        {
+          "key": "zigzagPct",
+          "kind": "double",
+          "description": "ZigZag 转折幅度：价格从一个高点（低点）反向走出这么多，才把它认作一个底。默认日线 5%（0.05），调大只认大波段、调小连小波段也算。留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "peakSymRatio",
+          "default": 0.35,
+          "kind": "double",
+          "description": "两底高低差不超过形态高度（底到颈线的距离）的这个比例；默认 0.35。按比例判，大形态、小形态口径一致。"
+        },
+        {
+          "key": "minPatternBars",
+          "default": 8,
+          "kind": "int",
+          "description": "两底之间至少隔多少根（头肩：左肩到头、头到右肩各至少一半）；默认 8，挡住两三天内的小抖动。"
+        },
+        {
+          "key": "breakPct",
+          "kind": "double",
+          "description": "颈线突破确认。默认日线 1.5%（填小数 0.015），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "breakoutSide",
+          "default": "UP",
+          "kind": "select",
+          "description": "W 底默认要求中间反弹高点向上突破；成立后统一输出 +1。"
+        },
+        {
+          "key": "qualityMin",
+          "default": 0.6,
+          "kind": "double",
+          "description": "形态质量过滤阈值；设为 0 时弱形态也允许返回信号。"
+        },
+        {
+          "key": "confirmBars",
+          "default": 1,
+          "kind": "int",
+          "description": "连续多少根闭合 K 线有效突破才返回信号。"
+        },
+        {
+          "key": "breakoutBasis",
+          "default": "CLOSE",
+          "kind": "string",
+          "description": "CLOSE 使用收盘确认；HIGH_LOW 使用最高/最低价触发。"
+        },
+        {
+          "key": "atrPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "ATR 突破过滤使用的历史周期。"
+        },
+        {
+          "key": "breakAtrMultiple",
+          "default": 0,
+          "kind": "double",
+          "description": "设为 0 关闭；大于 0 时突破幅度需同时满足 ATR 倍数过滤。"
+        },
+        {
+          "key": "freshBreakout",
+          "default": 1,
+          "kind": "int",
+          "description": "1＝确认那根的前一根还没突破才算（突破后不再每天重复报）；0＝站在线外就一直报（旧行为）。"
+        },
+        {
+          "key": "breakoutVolRatio",
+          "default": 1.5,
+          "kind": "double",
+          "description": "向上突破那根的量 ≥ 前 N 根均量 × 此值才算；0＝不看量。向下破位不要求放量。"
+        },
+        {
+          "key": "breakoutVolLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "放量倍数与前多少根的均量比。"
+        }
+      ],
+      "compact": [
+        "minLookback",
+        "minSpanBars=0",
+        "maxSpanBars=0",
+        "lookback=60",
+        "ridgeDiffPct",
+        "lowSymPct",
+        "zigzagPct",
+        "peakSymRatio=0.35",
+        "minPatternBars=8",
+        "breakPct",
+        "breakoutSide=UP",
+        "qualityMin=0.6",
+        "confirmBars=1",
+        "breakoutBasis=CLOSE",
+        "atrPeriod=14",
+        "breakAtrMultiple=0",
+        "freshBreakout=1",
+        "breakoutVolRatio=1.5",
+        "breakoutVolLookback=20"
+      ],
+      "summary": "W 底形态识别，经典反转看涨信号。",
+      "pitfalls": [
+        "2026-09-23 起默认口径收紧：只认新突破、突破幅度 ≥1.5%、向上突破要放量、形态要有足够幅度。旧口径下 W 底 / M 头约 25% 的股票日都报信号，基本是噪音；收紧后罕见，但实测事件后 10 日胜率仍在 45%–55%，形态本身预测力有限，建议与趋势 / 量能条件组合使用。",
+        "横盘震荡市中容易形成假 W 底，突破后很快又跌回来，止损一定要设",
+        "形态识别有主观性，不同参数（如回溯期、容差）可能得到不同结果，别盲目信任",
+        "突破后可能回踩颈线，如果回踩不破再涨才是真突破，但很多人一突破就冲进去被套"
+      ]
+    },
+    {
+      "type": "PATTERN_TRIPLE_BOTTOM",
+      "name": "三重底（回升突破）",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "minLookback",
+          "kind": "int",
+          "description": "开始识别需要的最少行情根数；回溯是最大搜索窗口。留空沿用原回溯预热口径，C 端普通形态 40、三重顶底 70。旗形仍须放得下旗杆、最短旗面与确认根数。"
+        },
+        {
+          "key": "minSpanBars",
+          "default": 0,
+          "kind": "int",
+          "description": "从第一个顶（底 / 左肩）到突破至少多少根 K 线；0＝不限。形态太短噪音大，C 端默认 80。"
+        },
+        {
+          "key": "maxSpanBars",
+          "default": 0,
+          "kind": "int",
+          "description": "从第一个顶（底 / 左肩）到突破至多多少根 K 线；0＝不限。一年的大形态里面会套很多别的图形，C 端默认 200。小周期做短线可以调小。"
+        },
+        {
+          "key": "lookback",
+          "default": 60,
+          "kind": "int",
+          "description": "最大回溯搜索窗口；最少行情根数未填时也作为预热门槛。"
+        },
+        {
+          "key": "ridgeDiffPct",
+          "kind": "double",
+          "description": "中间反弹高点容差。默认日线 8%（0.08），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "lowSymPct",
+          "kind": "double",
+          "description": "两底价格差上限（占价格的比例，如 0.05＝5%）。留空＝不看价格差，只按「高低差/形态高度」判对称（大形态两底差 6%～7% 很常见，按价格卡会漏）。"
+        },
+        {
+          "key": "zigzagPct",
+          "kind": "double",
+          "description": "ZigZag 转折幅度：价格从一个高点（低点）反向走出这么多，才把它认作一个底。默认日线 5%（0.05），调大只认大波段、调小连小波段也算。留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "peakSymRatio",
+          "default": 0.35,
+          "kind": "double",
+          "description": "两底高低差不超过形态高度（底到颈线的距离）的这个比例；默认 0.35。按比例判，大形态、小形态口径一致。"
+        },
+        {
+          "key": "minPatternBars",
+          "default": 8,
+          "kind": "int",
+          "description": "两底之间至少隔多少根（头肩：左肩到头、头到右肩各至少一半）；默认 8，挡住两三天内的小抖动。"
+        },
+        {
+          "key": "breakPct",
+          "kind": "double",
+          "description": "颈线突破确认。默认日线 1.5%（填小数 0.015），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "breakoutSide",
+          "default": "UP",
+          "kind": "select",
+          "description": "W 底默认要求中间反弹高点向上突破；成立后统一输出 +1。"
+        },
+        {
+          "key": "qualityMin",
+          "default": 0.6,
+          "kind": "double",
+          "description": "形态质量过滤阈值；设为 0 时弱形态也允许返回信号。"
+        },
+        {
+          "key": "confirmBars",
+          "default": 1,
+          "kind": "int",
+          "description": "连续多少根闭合 K 线有效突破才返回信号。"
+        },
+        {
+          "key": "breakoutBasis",
+          "default": "CLOSE",
+          "kind": "string",
+          "description": "CLOSE 使用收盘确认；HIGH_LOW 使用最高/最低价触发。"
+        },
+        {
+          "key": "atrPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "ATR 突破过滤使用的历史周期。"
+        },
+        {
+          "key": "breakAtrMultiple",
+          "default": 0,
+          "kind": "double",
+          "description": "设为 0 关闭；大于 0 时突破幅度需同时满足 ATR 倍数过滤。"
+        },
+        {
+          "key": "freshBreakout",
+          "default": 1,
+          "kind": "int",
+          "description": "1＝确认那根的前一根还没突破才算（突破后不再每天重复报）；0＝站在线外就一直报（旧行为）。"
+        },
+        {
+          "key": "breakoutVolRatio",
+          "default": 1.5,
+          "kind": "double",
+          "description": "向上突破那根的量 ≥ 前 N 根均量 × 此值才算；0＝不看量。向下破位不要求放量。"
+        },
+        {
+          "key": "breakoutVolLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "放量倍数与前多少根的均量比。"
+        }
+      ],
+      "compact": [
+        "minLookback",
+        "minSpanBars=0",
+        "maxSpanBars=0",
+        "lookback=60",
+        "ridgeDiffPct",
+        "lowSymPct",
+        "zigzagPct",
+        "peakSymRatio=0.35",
+        "minPatternBars=8",
+        "breakPct",
+        "breakoutSide=UP",
+        "qualityMin=0.6",
+        "confirmBars=1",
+        "breakoutBasis=CLOSE",
+        "atrPeriod=14",
+        "breakAtrMultiple=0",
+        "freshBreakout=1",
+        "breakoutVolRatio=1.5",
+        "breakoutVolLookback=20"
+      ],
+      "summary": "三次下探到相近位置都没破，随后突破颈线，比 W 底更扎实的见底形态。",
+      "pitfalls": [
+        "三次试探才成立，形成慢、少见；形态中途别提前当成立"
+      ]
+    },
+    {
+      "type": "PATTERN_M_TOP",
+      "name": "M 顶（回落跌破）",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "minLookback",
+          "kind": "int",
+          "description": "开始识别需要的最少行情根数；回溯是最大搜索窗口。留空沿用原回溯预热口径，C 端普通形态 40、三重顶底 70。旗形仍须放得下旗杆、最短旗面与确认根数。"
+        },
+        {
+          "key": "minSpanBars",
+          "default": 0,
+          "kind": "int",
+          "description": "从第一个顶（底 / 左肩）到突破至少多少根 K 线；0＝不限。形态太短噪音大，C 端默认 80。"
+        },
+        {
+          "key": "maxSpanBars",
+          "default": 0,
+          "kind": "int",
+          "description": "从第一个顶（底 / 左肩）到突破至多多少根 K 线；0＝不限。一年的大形态里面会套很多别的图形，C 端默认 200。小周期做短线可以调小。"
+        },
+        {
+          "key": "lookback",
+          "default": 60,
+          "kind": "int",
+          "description": "最大回溯搜索窗口；最少行情根数未填时也作为预热门槛。"
+        },
+        {
+          "key": "valleyDiffPct",
+          "kind": "double",
+          "description": "中间回落低点容差。默认日线 8%（0.08），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "highSymPct",
+          "kind": "double",
+          "description": "两顶价格差上限（占价格的比例，如 0.05＝5%）。留空＝不看价格差，只按「高低差/形态高度」判对称（大形态两顶差 6%～7% 很常见，按价格卡会漏）。"
+        },
+        {
+          "key": "zigzagPct",
+          "kind": "double",
+          "description": "ZigZag 转折幅度：价格从一个高点（低点）反向走出这么多，才把它认作一个顶。默认日线 5%（0.05），调大只认大波段、调小连小波段也算。留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "peakSymRatio",
+          "default": 0.35,
+          "kind": "double",
+          "description": "两顶高低差不超过形态高度（顶到颈线的距离）的这个比例；默认 0.35。按比例判，大形态、小形态口径一致。"
+        },
+        {
+          "key": "minPatternBars",
+          "default": 8,
+          "kind": "int",
+          "description": "两顶之间至少隔多少根（头肩：左肩到头、头到右肩各至少一半）；默认 8，挡住两三天内的小抖动。"
+        },
+        {
+          "key": "breakPct",
+          "kind": "double",
+          "description": "颈线跌破确认。默认日线 1.5%（填小数 0.015），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "breakoutSide",
+          "default": "DOWN",
+          "kind": "select",
+          "description": "M 顶默认要求中间回落低点向下跌破；成立后统一输出 +1。"
+        },
+        {
+          "key": "qualityMin",
+          "default": 0.6,
+          "kind": "double",
+          "description": "形态质量过滤阈值；设为 0 时弱形态也允许返回信号。"
+        },
+        {
+          "key": "confirmBars",
+          "default": 1,
+          "kind": "int",
+          "description": "连续多少根闭合 K 线有效突破才返回信号。"
+        },
+        {
+          "key": "breakoutBasis",
+          "default": "CLOSE",
+          "kind": "string",
+          "description": "CLOSE 使用收盘确认；HIGH_LOW 使用最高/最低价触发。"
+        },
+        {
+          "key": "atrPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "ATR 突破过滤使用的历史周期。"
+        },
+        {
+          "key": "breakAtrMultiple",
+          "default": 0,
+          "kind": "double",
+          "description": "设为 0 关闭；大于 0 时突破幅度需同时满足 ATR 倍数过滤。"
+        },
+        {
+          "key": "freshBreakout",
+          "default": 1,
+          "kind": "int",
+          "description": "1＝确认那根的前一根还没突破才算（突破后不再每天重复报）；0＝站在线外就一直报（旧行为）。"
+        },
+        {
+          "key": "breakoutVolRatio",
+          "default": 1.5,
+          "kind": "double",
+          "description": "向上突破那根的量 ≥ 前 N 根均量 × 此值才算；0＝不看量。向下破位不要求放量。"
+        },
+        {
+          "key": "breakoutVolLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "放量倍数与前多少根的均量比。"
+        }
+      ],
+      "compact": [
+        "minLookback",
+        "minSpanBars=0",
+        "maxSpanBars=0",
+        "lookback=60",
+        "valleyDiffPct",
+        "highSymPct",
+        "zigzagPct",
+        "peakSymRatio=0.35",
+        "minPatternBars=8",
+        "breakPct",
+        "breakoutSide=DOWN",
+        "qualityMin=0.6",
+        "confirmBars=1",
+        "breakoutBasis=CLOSE",
+        "atrPeriod=14",
+        "breakAtrMultiple=0",
+        "freshBreakout=1",
+        "breakoutVolRatio=1.5",
+        "breakoutVolLookback=20"
+      ],
+      "summary": "经典双顶形态，跌破颈线后确认顶部反转。",
+      "pitfalls": [
+        "2026-09-23 起默认口径收紧：只认新突破、突破幅度 ≥1.5%、向上突破要放量、形态要有足够幅度。旧口径下 W 底 / M 头约 25% 的股票日都报信号，基本是噪音；收紧后罕见，但实测事件后 10 日胜率仍在 45%–55%，形态本身预测力有限，建议与趋势 / 量能条件组合使用。",
+        "在震荡市中，M顶可能演变为W底或其他整理形态，频繁假突破会亏钱",
+        "形态识别具有主观性，不同参数设置会导致完全不同的信号，容易过度优化",
+        "跌破颈线后有时会回抽确认，如果回抽不破颈线则更可靠，但回抽也可能失败"
+      ]
+    },
+    {
+      "type": "PATTERN_TRIPLE_TOP",
+      "name": "三重顶（跌破颈线）",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "minLookback",
+          "kind": "int",
+          "description": "开始识别需要的最少行情根数；回溯是最大搜索窗口。留空沿用原回溯预热口径，C 端普通形态 40、三重顶底 70。旗形仍须放得下旗杆、最短旗面与确认根数。"
+        },
+        {
+          "key": "minSpanBars",
+          "default": 0,
+          "kind": "int",
+          "description": "从第一个顶（底 / 左肩）到突破至少多少根 K 线；0＝不限。形态太短噪音大，C 端默认 80。"
+        },
+        {
+          "key": "maxSpanBars",
+          "default": 0,
+          "kind": "int",
+          "description": "从第一个顶（底 / 左肩）到突破至多多少根 K 线；0＝不限。一年的大形态里面会套很多别的图形，C 端默认 200。小周期做短线可以调小。"
+        },
+        {
+          "key": "lookback",
+          "default": 60,
+          "kind": "int",
+          "description": "最大回溯搜索窗口；最少行情根数未填时也作为预热门槛。"
+        },
+        {
+          "key": "valleyDiffPct",
+          "kind": "double",
+          "description": "中间回落低点容差。默认日线 8%（0.08），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "highSymPct",
+          "kind": "double",
+          "description": "两顶价格差上限（占价格的比例，如 0.05＝5%）。留空＝不看价格差，只按「高低差/形态高度」判对称（大形态两顶差 6%～7% 很常见，按价格卡会漏）。"
+        },
+        {
+          "key": "zigzagPct",
+          "kind": "double",
+          "description": "ZigZag 转折幅度：价格从一个高点（低点）反向走出这么多，才把它认作一个顶。默认日线 5%（0.05），调大只认大波段、调小连小波段也算。留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "peakSymRatio",
+          "default": 0.35,
+          "kind": "double",
+          "description": "两顶高低差不超过形态高度（顶到颈线的距离）的这个比例；默认 0.35。按比例判，大形态、小形态口径一致。"
+        },
+        {
+          "key": "minPatternBars",
+          "default": 8,
+          "kind": "int",
+          "description": "两顶之间至少隔多少根（头肩：左肩到头、头到右肩各至少一半）；默认 8，挡住两三天内的小抖动。"
+        },
+        {
+          "key": "breakPct",
+          "kind": "double",
+          "description": "颈线跌破确认。默认日线 1.5%（填小数 0.015），留空＝按周期自动：以日线为基准，按时间平方根换算（小时线约 1/2、15 分钟约 1/4、5 分钟约 1/7、周线约 2.2 倍）；填了就按填的值。"
+        },
+        {
+          "key": "breakoutSide",
+          "default": "DOWN",
+          "kind": "select",
+          "description": "M 顶默认要求中间回落低点向下跌破；成立后统一输出 +1。"
+        },
+        {
+          "key": "qualityMin",
+          "default": 0.6,
+          "kind": "double",
+          "description": "形态质量过滤阈值；设为 0 时弱形态也允许返回信号。"
+        },
+        {
+          "key": "confirmBars",
+          "default": 1,
+          "kind": "int",
+          "description": "连续多少根闭合 K 线有效突破才返回信号。"
+        },
+        {
+          "key": "breakoutBasis",
+          "default": "CLOSE",
+          "kind": "string",
+          "description": "CLOSE 使用收盘确认；HIGH_LOW 使用最高/最低价触发。"
+        },
+        {
+          "key": "atrPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "ATR 突破过滤使用的历史周期。"
+        },
+        {
+          "key": "breakAtrMultiple",
+          "default": 0,
+          "kind": "double",
+          "description": "设为 0 关闭；大于 0 时突破幅度需同时满足 ATR 倍数过滤。"
+        },
+        {
+          "key": "freshBreakout",
+          "default": 1,
+          "kind": "int",
+          "description": "1＝确认那根的前一根还没突破才算（突破后不再每天重复报）；0＝站在线外就一直报（旧行为）。"
+        },
+        {
+          "key": "breakoutVolRatio",
+          "default": 1.5,
+          "kind": "double",
+          "description": "向上突破那根的量 ≥ 前 N 根均量 × 此值才算；0＝不看量。向下破位不要求放量。"
+        },
+        {
+          "key": "breakoutVolLookback",
+          "default": 20,
+          "kind": "int",
+          "description": "放量倍数与前多少根的均量比。"
+        }
+      ],
+      "compact": [
+        "minLookback",
+        "minSpanBars=0",
+        "maxSpanBars=0",
+        "lookback=60",
+        "valleyDiffPct",
+        "highSymPct",
+        "zigzagPct",
+        "peakSymRatio=0.35",
+        "minPatternBars=8",
+        "breakPct",
+        "breakoutSide=DOWN",
+        "qualityMin=0.6",
+        "confirmBars=1",
+        "breakoutBasis=CLOSE",
+        "atrPeriod=14",
+        "breakAtrMultiple=0",
+        "freshBreakout=1",
+        "breakoutVolRatio=1.5",
+        "breakoutVolLookback=20"
+      ],
+      "summary": "三次冲高到相近位置都没过去，随后跌破颈线，比 M 头更强的见顶形态。",
+      "pitfalls": [
+        "三次试探才成立，形成慢、少见；形态中途别提前当成立"
+      ]
+    },
+    {
+      "type": "LIMIT_UP_DAYS",
+      "name": "连板",
+      "category": "量价结构",
+      "params": [
+        {
+          "key": "lookbackDays",
+          "default": 10,
+          "kind": "int",
+          "description": "按上海时区 trade_date 对齐的日线回看窗口；数据以 md_bars_1d 为主，近期缺口可由 1m 按 trade_date 回填。"
+        },
+        {
+          "key": "limitDays",
+          "default": 3,
+          "kind": "int",
+          "description": "要匹配的连续涨停根数，例如 3 表示 3 连板。"
+        },
+        {
+          "key": "matchMode",
+          "default": "AT_LEAST",
+          "kind": "string",
+          "description": "AT_LEAST：至少 N 连板，3 连板包含 4/5 连板；EXACT：恰好 N 连板。"
+        },
+        {
+          "key": "breakPolicy",
+          "default": "ALLOW_BREAK_AFTER_STREAK",
+          "kind": "string",
+          "description": "ALLOW_BREAK_AFTER_STREAK：窗口内出现过即可，后面允许断板；REQUIRE_STREAK_TO_WINDOW_END：窗口末日仍处于连板。"
+        },
+        {
+          "key": "limitPct",
+          "default": 9.97,
+          "kind": "double",
+          "description": "涨停幅度默认按标的板块自动判断（主板 10、创业板/科创板 20、北交所 30，涨停价 = 前收 ×(1+幅度) 四舍五入到分），池子里主板与创业板混着也不用改。只有「认不出标的」时才用这个值兜底——回测 / 出线 / 画布预览都已自动带上标的，正常不用填。"
+        }
+      ],
+      "compact": [
+        "lookbackDays=10",
+        "limitDays=3",
+        "matchMode=AT_LEAST",
+        "breakPolicy=ALLOW_BREAK_AFTER_STREAK",
+        "limitPct=9.97"
+      ],
+      "summary": "判定一段时间内是否出现过连板（连续涨停），识别强势股和连板妖股。",
+      "pitfalls": [
+        "涨停板次日高开低走是常见坑，只看连板容易追高被套",
+        "一字板买不进，等开板时往往已经是高位，接盘风险极大",
+        "市场情绪退潮期，连板股可能补跌更狠，别盲目迷信",
+        "它是 0/1 条件量，画在副图上就是一条方波：没有连板的位置恒为 0，不是算不出来"
+      ]
+    },
+    {
+      "type": "VOLUME_RATIO",
+      "name": "倍量比",
+      "category": "量价与资金流",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "当前 K 线成交量 / 前 N 根 K 线平均成交量。2.0 表示当前量达到此前均量的 2 倍。"
+        }
+      ],
+      "compact": [
+        "period=20"
+      ],
+      "summary": "当日成交量与过去N日均量的比值，判断放量或缩量程度。",
+      "pitfalls": [
+        "突然的利好消息会导致倍量比瞬间飙升，但可能是散户跟风而非主力，次日容易回落",
+        "次新股或刚复牌股票的历史均量参考意义不大，倍量比容易失真",
+        "倍量比只反映相对放量程度，不区分主动买还是主动卖，需要结合价格方向判断"
+      ]
+    },
+    {
+      "type": "ZSCORE",
+      "name": "Z-Score 标准分",
+      "category": "统计与极值",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "当前值相对窗口均值的标准差倍数。"
+        }
+      ],
+      "compact": [
+        "period=20"
+      ],
+      "summary": "衡量价格偏离均值多少标准差，识别极端行情。",
+      "pitfalls": [
+        "在强趋势行情里 Z-Score 会一直大于 2 或小于 -2，做均值回归会被反复打脸，亏到怀疑人生",
+        "窗口期太短（如 5 天）Z-Score 容易剧烈跳动，信号频繁但假信号也多",
+        "不同股票的波动率差异大，Z-Score 绝对值 2 对某些股票可能是常态，对另一些才是极端"
+      ]
+    },
+    {
+      "type": "PERCENT_RANK",
+      "name": "百分位排名",
+      "category": "统计与极值",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "当前值在窗口内的百分位，范围 0-100。"
+        }
+      ],
+      "compact": [
+        "period=20"
+      ],
+      "summary": "当前价格在过去 N 天里的相对位置，0-100 之间。",
+      "pitfalls": [
+        "横盘震荡时百分位频繁在 0-100 之间来回，容易给出假信号，必须配合趋势指标",
+        "百分位只反映过去 N 天的相对位置，不反映绝对价格高低，牛市里长期在 80 以上很正常，盲目做空会亏惨",
+        "窗口期太短（如 5 天）时百分位波动剧烈，信号可靠性差；窗口太长（如 100 天）则反应迟钝，错过行情"
+      ]
+    },
+    {
+      "type": "HIGHEST",
+      "name": "N 日最高",
+      "category": "统计与极值",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "回看根数。"
+        }
+      ],
+      "compact": [
+        "period=20"
+      ],
+      "summary": "输入序列（缺省收盘价）在最近 N 根里的最大值。",
+      "pitfalls": [
+        "含当根，所以「突破前高」要和上一根的值比"
+      ]
+    },
+    {
+      "type": "LOWEST",
+      "name": "N 日最低",
+      "category": "统计与极值",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "回看根数。"
+        }
+      ],
+      "compact": [
+        "period=20"
+      ],
+      "summary": "输入序列（缺省收盘价）在最近 N 根里的最小值。",
+      "pitfalls": [
+        "含当根"
+      ]
+    },
+    {
+      "type": "STDDEV",
+      "name": "标准差",
+      "category": "统计与极值",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "回看根数。"
+        }
+      ],
+      "compact": [
+        "period=20"
+      ],
+      "summary": "输入序列（缺省收盘价）最近 N 根的标准差，衡量波动大小。",
+      "pitfalls": [
+        "是价格单位，不同价位的股票不能直接比；要比用 ATR_PCT 或 BOLL 带宽"
+      ]
+    },
+    {
+      "type": "MA_SLOPE",
+      "name": "均线斜率",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "先计算输入序列的 SMA。"
+        },
+        {
+          "key": "slopeBars",
+          "default": 5,
+          "kind": "int",
+          "description": "当前均线相对 N 根前均线的百分比变化。"
+        }
+      ],
+      "compact": [
+        "period=20",
+        "slopeBars=5"
+      ],
+      "summary": "衡量均线倾斜程度，判断趋势强弱与转折。",
+      "pitfalls": [
+        "斜率本身波动大，容易频繁发出假信号，尤其在横盘震荡时上下乱窜",
+        "参数周期选太短（如 5 日均线+3 根斜率间隔）噪音极大，几乎没法用",
+        "斜率只反映均线的变化速度，不反映价格位置，高位斜率回落可能是正常调整而非反转"
+      ]
+    },
+    {
+      "type": "LINEAR_REG_SLOPE",
+      "name": "线性回归斜率",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "输入序列在窗口内的最小二乘斜率，按均价归一为每根 K 线百分比。"
+        }
+      ],
+      "compact": [
+        "period=20"
+      ],
+      "summary": "用线性回归衡量价格趋势的强度和方向，比均线更灵敏。",
+      "pitfalls": [
+        "在震荡行情中斜率会频繁正负切换，产生大量假信号，比均线更容易被「左右打脸」",
+        "斜率对价格突变非常敏感，一根大阳线或大阴线会瞬间改变斜率，容易误导你追涨杀跌",
+        "不同周期参数下斜率数值差异很大，不能跨周期直接比较，必须固定参数看相对变化"
+      ]
+    },
+    {
+      "type": "LINEAR_REG_R2",
+      "name": "线性趋势质量 R2",
+      "category": "趋势与方向",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "线性回归拟合优度，范围 0-1，越接近 1 趋势越线性。"
+        }
+      ],
+      "compact": [
+        "period=20"
+      ],
+      "summary": "衡量线性趋势的「靠谱程度」，值越高趋势越稳。",
+      "pitfalls": [
+        "R2 只衡量线性关系，对「急涨急跌」的抛物线型趋势会给出低值，容易错过主升浪",
+        "参数周期选得太短（如 5 天），R2 容易忽高忽低，产生大量假信号",
+        "R2 本身不指示方向，单独用会陷入「趋势很好但方向错了」的尴尬",
+        "在极端行情（如连续涨停）中 R2 可能接近 1，但此时追高风险极大"
+      ]
+    },
+    {
+      "type": "PRICE_BREAKOUT_HIGH",
+      "name": "价格上破前高",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "用于计算突破基准的历史高点窗口，不包含确认 K 线。"
+        },
+        {
+          "key": "confirmBars",
+          "default": 1,
+          "kind": "int",
+          "description": "连续多少根闭合 K 线有效上破才返回 +1。"
+        },
+        {
+          "key": "breakoutBasis",
+          "default": "CLOSE",
+          "kind": "string",
+          "description": "CLOSE 使用收盘确认；HIGH_LOW 使用最高价触发。"
+        },
+        {
+          "key": "breakPct",
+          "default": 0,
+          "kind": "double",
+          "description": "相对前高的最小突破比例；0.002 表示至少上破 0.2%。"
+        },
+        {
+          "key": "atrPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "ATR 突破过滤使用的历史周期。"
+        },
+        {
+          "key": "breakAtrMultiple",
+          "default": 0,
+          "kind": "double",
+          "description": "设为 0 关闭；大于 0 时突破距离需达到 ATR 的指定倍数。"
+        }
+      ],
+      "compact": [
+        "period=20",
+        "confirmBars=1",
+        "breakoutBasis=CLOSE",
+        "breakPct=0",
+        "atrPeriod=14",
+        "breakAtrMultiple=0"
+      ],
+      "summary": "价格突破近期高点，经典追涨信号。",
+      "pitfalls": [
+        "横盘震荡时频繁假突破，一买就套，胜率很低",
+        "突破后如果量能不足，容易冲高回落，需要配合成交量验证",
+        "周期选太小（如 5 日）信号太多，选太大（如 60 日）信号太少，容易错过行情"
+      ]
+    },
+    {
+      "type": "PRICE_BREAKOUT_LOW",
+      "name": "价格下破前低",
+      "category": "K线形态",
+      "params": [
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "用于计算跌破基准的历史低点窗口，不包含确认 K 线。"
+        },
+        {
+          "key": "confirmBars",
+          "default": 1,
+          "kind": "int",
+          "description": "连续多少根闭合 K 线有效下破才返回 +1。"
+        },
+        {
+          "key": "breakoutBasis",
+          "default": "CLOSE",
+          "kind": "string",
+          "description": "CLOSE 使用收盘确认；HIGH_LOW 使用最低价触发。"
+        },
+        {
+          "key": "breakPct",
+          "default": 0,
+          "kind": "double",
+          "description": "相对前低的最小跌破比例；0.002 表示至少下破 0.2%。"
+        },
+        {
+          "key": "atrPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "ATR 突破过滤使用的历史周期。"
+        },
+        {
+          "key": "breakAtrMultiple",
+          "default": 0,
+          "kind": "double",
+          "description": "设为 0 关闭；大于 0 时跌破距离需达到 ATR 的指定倍数。"
+        }
+      ],
+      "compact": [
+        "period=20",
+        "confirmBars=1",
+        "breakoutBasis=CLOSE",
+        "breakPct=0",
+        "atrPeriod=14",
+        "breakAtrMultiple=0"
+      ],
+      "summary": "价格跌破过去N根K线的最低点，经典向下突破信号。",
+      "pitfalls": [
+        "横盘震荡时，前低频繁被突破又收回，容易反复打脸",
+        "突破后可能假突破，价格迅速拉回，需要配合确认根数或成交量过滤",
+        "周期选太大，信号太少；周期选太小，噪音太多"
+      ]
+    },
+    {
+      "type": "INDEX_MA_DIST_PCT",
+      "name": "大盘距均线 %",
+      "category": "大盘环境",
+      "params": [
+        {
+          "key": "index",
+          "default": "000001.SH",
+          "kind": "string",
+          "description": "看哪个指数；默认上证指数。"
+        },
+        {
+          "key": "period",
+          "default": 20,
+          "kind": "int",
+          "description": "指数的 N 日均线。"
+        }
+      ],
+      "compact": [
+        "index=000001.SH",
+        "period=20"
+      ],
+      "summary": "大盘（默认上证指数）离它的 N 日均线有多远，正数表示在均线上方。",
+      "pitfalls": [
+        "均线有滞后：急跌开始的头几天指数可能还在均线上方",
+        "只管开仓，不会替你平掉已有持仓；要跟大盘出场，另在出场条件里加「< 0」",
+        "指数日线每天收盘后同步，盘后才有当天值"
+      ]
+    },
+    {
+      "type": "LOWER_WICK_ABSORPTION",
+      "name": "下影承接力",
+      "category": "风控与辅助",
+      "params": [
+        {
+          "key": "period",
+          "default": 5,
+          "kind": "int",
+          "description": "计算量比时使用的历史均量回望根数。5=短线，20=波段。"
+        }
+      ],
+      "compact": [
+        "period=5"
+      ],
+      "summary": "量化「低位放量承接」的强度：量比 × 下影线/实体，捕捉多方在低位强力护盘的信号。",
+      "pitfalls": [
+        "连续涨停/跌停板时，下影线可能极小甚至为零，承接力数值会失真",
+        "大盘股和小盘股的承接力数值不可直接比较——流通盘大小影响量比基数",
+        "只看承接力不看价格位置容易误判：高位放量长下影可能是出货而非承接",
+        "它不是支撑位：只衡量单根 K 线的下影和量，不给出价位。要找支撑 / 阻力价位用「支撑阻力」分类（前高前低、摆动高低点、平台、缺口、成交密集区）。旧名 SUPPORT_STRENGTH 仍可用，与本指标完全相同。"
+      ]
+    },
+    {
+      "type": "TREND_HEALTH",
+      "name": "趋势健康度",
+      "category": "风控与辅助",
+      "params": [
+        {
+          "key": "fast",
+          "default": 5,
+          "kind": "int",
+          "description": "用于计算均线斜率的快速均线，默认 MA5。"
+        },
+        {
+          "key": "slow",
+          "default": 20,
+          "kind": "int",
+          "description": "偏离惩罚的基准均线：价格偏离该均线越远扣分越多，默认 MA20。"
+        },
+        {
+          "key": "slopePeriod",
+          "default": 5,
+          "kind": "int",
+          "description": "斜率 = (快线当前值 − 快线 N 根前值) / (N × ATR)，默认 5。"
+        },
+        {
+          "key": "atrPeriod",
+          "default": 14,
+          "kind": "int",
+          "description": "用 ATR 归一化斜率，使不同价格股票的趋势分可横向比较，默认 14。"
+        }
+      ],
+      "compact": [
+        "fast=5",
+        "slow=20",
+        "slopePeriod=5",
+        "atrPeriod=14"
+      ],
+      "summary": "综合衡量趋势方向性与价格位置合理性：斜率项（均线上升速度）减去偏离惩罚项（价格偏离均线程度）。",
+      "pitfalls": [
+        "该指标参数较多（4个），调参复杂，建议先用默认值验证有效性再微调",
+        "A 股停牌复牌后第一天数据可能导致 ATR 异常，建议结合停牌过滤",
+        "趋势健康度对快速反转行情反应慢（均线类指标天然滞后），不适合极短线"
+      ]
+    },
+    {
+      "type": "PRIOR_HIGH",
+      "name": "前 N 根最高（不含当根）",
+      "category": "支撑阻力",
+      "params": [
+        {
+          "key": "bars",
+          "default": 20,
+          "kind": "int",
+          "description": "不含当根的回看根数。"
+        }
+      ],
+      "compact": [
+        "bars=20"
+      ],
+      "summary": "前 N 根的最高价，不含当根。「突破前高」＝ BREAK(level=PRIOR_HIGH)。",
+      "pitfalls": [
+        "要「N 日前高」就给它写 timeframe:\"1d\"（已收完的日线），或直接用 HIGHEST(timeframe=1d)。",
+        "输出是价格（与主序列同一复权口径）；算不出时为空，比较条件不成立。",
+        "配合规则节点 TOUCH / BREAK / RECLAIM / RETEST 使用：{\"type\":\"BREAK\",\"level\":{\"ind\":\"名字\"}}。"
+      ]
+    },
+    {
+      "type": "PRIOR_LOW",
+      "name": "前 N 根最低（不含当根）",
+      "category": "支撑阻力",
+      "params": [
+        {
+          "key": "bars",
+          "default": 20,
+          "kind": "int",
+          "description": "不含当根的回看根数。"
+        }
+      ],
+      "compact": [
+        "bars=20"
+      ],
+      "summary": "前 N 根的最低价，不含当根。",
+      "pitfalls": [
+        "输出是价格（与主序列同一复权口径）；算不出时为空，比较条件不成立。",
+        "配合规则节点 TOUCH / BREAK / RECLAIM / RETEST 使用：{\"type\":\"BREAK\",\"level\":{\"ind\":\"名字\"}}。"
+      ]
+    },
+    {
+      "type": "SWING_HIGH",
+      "name": "摆动高点",
+      "category": "支撑阻力",
+      "params": [
+        {
+          "key": "strength",
+          "default": 3,
+          "kind": "int",
+          "description": "左右各多少根比它低才算高点；越大越少、越显著。"
+        },
+        {
+          "key": "lookback",
+          "default": 250,
+          "kind": "int",
+          "description": "超过这么多根的摆动点作废。"
+        }
+      ],
+      "compact": [
+        "strength=3",
+        "lookback=250"
+      ],
+      "summary": "最近一个已确认的摆动高点：左右各 strength 根都比它低；右侧 strength 根走完才确认，没有前视。",
+      "pitfalls": [
+        "确认有滞后：高点出现后要再走 strength 根才会被认出来。",
+        "输出是价格（与主序列同一复权口径）；算不出时为空，比较条件不成立。",
+        "配合规则节点 TOUCH / BREAK / RECLAIM / RETEST 使用：{\"type\":\"BREAK\",\"level\":{\"ind\":\"名字\"}}。"
+      ]
+    },
+    {
+      "type": "SWING_LOW",
+      "name": "摆动低点",
+      "category": "支撑阻力",
+      "params": [
+        {
+          "key": "strength",
+          "default": 3,
+          "kind": "int",
+          "description": "左右各多少根比它高才算低点。"
+        },
+        {
+          "key": "lookback",
+          "default": 250,
+          "kind": "int",
+          "description": "超过这么多根的摆动点作废。"
+        }
+      ],
+      "compact": [
+        "strength=3",
+        "lookback=250"
+      ],
+      "summary": "最近一个已确认的摆动低点。",
+      "pitfalls": [
+        "输出是价格（与主序列同一复权口径）；算不出时为空，比较条件不成立。",
+        "配合规则节点 TOUCH / BREAK / RECLAIM / RETEST 使用：{\"type\":\"BREAK\",\"level\":{\"ind\":\"名字\"}}。"
+      ]
+    },
+    {
+      "type": "PLATFORM_HIGH",
+      "name": "平台上沿",
+      "category": "支撑阻力",
+      "params": [
+        {
+          "key": "bars",
+          "default": 20,
+          "kind": "int",
+          "description": "不含当根的回看根数。"
+        },
+        {
+          "key": "maxRangePct",
+          "default": 8,
+          "kind": "double",
+          "description": "前 N 根（最高 − 最低）/ 最低 × 100 不超过它才算平台。"
+        }
+      ],
+      "compact": [
+        "bars=20",
+        "maxRangePct=8"
+      ],
+      "summary": "前 N 根（不含当根）振幅 ≤ maxRangePct% 时的最高价；振幅超了不算平台（为空）。",
+      "pitfalls": [
+        "输出是价格（与主序列同一复权口径）；算不出时为空，比较条件不成立。",
+        "配合规则节点 TOUCH / BREAK / RECLAIM / RETEST 使用：{\"type\":\"BREAK\",\"level\":{\"ind\":\"名字\"}}。"
+      ]
+    },
+    {
+      "type": "PLATFORM_LOW",
+      "name": "平台下沿",
+      "category": "支撑阻力",
+      "params": [
+        {
+          "key": "bars",
+          "default": 20,
+          "kind": "int",
+          "description": "不含当根的回看根数。"
+        },
+        {
+          "key": "maxRangePct",
+          "default": 8,
+          "kind": "double",
+          "description": "同平台上沿。"
+        }
+      ],
+      "compact": [
+        "bars=20",
+        "maxRangePct=8"
+      ],
+      "summary": "前 N 根（不含当根）振幅 ≤ maxRangePct% 时的最低价。",
+      "pitfalls": [
+        "输出是价格（与主序列同一复权口径）；算不出时为空，比较条件不成立。",
+        "配合规则节点 TOUCH / BREAK / RECLAIM / RETEST 使用：{\"type\":\"BREAK\",\"level\":{\"ind\":\"名字\"}}。"
+      ]
+    },
+    {
+      "type": "GAP_SUPPORT",
+      "name": "缺口支撑",
+      "category": "支撑阻力",
+      "params": [
+        {
+          "key": "lookback",
+          "default": 60,
+          "kind": "int",
+          "description": "只找这么多根以内的缺口。"
+        }
+      ],
+      "compact": [
+        "lookback=60"
+      ],
+      "summary": "回看内最近一个未回补的向上缺口的回补价（缺口前一根的最高价）。",
+      "pitfalls": [
+        "分钟线之间的缺口没有意义：日内策略请写 timeframe:\"1d\" 用日线缺口。",
+        "输出是价格（与主序列同一复权口径）；算不出时为空，比较条件不成立。",
+        "配合规则节点 TOUCH / BREAK / RECLAIM / RETEST 使用：{\"type\":\"BREAK\",\"level\":{\"ind\":\"名字\"}}。"
+      ]
+    },
+    {
+      "type": "GAP_RESISTANCE",
+      "name": "缺口压力",
+      "category": "支撑阻力",
+      "params": [
+        {
+          "key": "lookback",
+          "default": 60,
+          "kind": "int",
+          "description": "只找这么多根以内的缺口。"
+        }
+      ],
+      "compact": [
+        "lookback=60"
+      ],
+      "summary": "回看内最近一个未回补的向下缺口的回补价（缺口前一根的最低价）。",
+      "pitfalls": [
+        "同缺口支撑，日内请用日线。",
+        "输出是价格（与主序列同一复权口径）；算不出时为空，比较条件不成立。",
+        "配合规则节点 TOUCH / BREAK / RECLAIM / RETEST 使用：{\"type\":\"BREAK\",\"level\":{\"ind\":\"名字\"}}。"
+      ]
+    },
+    {
+      "type": "GAP_DISTANCE_PCT",
+      "name": "距最近缺口 %",
+      "category": "支撑阻力",
+      "params": [
+        {
+          "key": "lookback",
+          "default": 60,
+          "kind": "int",
+          "description": "只找这么多根以内的缺口。"
+        }
+      ],
+      "compact": [
+        "lookback=60"
+      ],
+      "summary": "最近一个没回补的缺口离现价有多远（%），负数在下方是支撑、正数在上方是压力。",
+      "pitfalls": [
+        "只看最近的一个缺口，更早的缺口不算",
+        "分钟线之间的缺口没有意义，日内策略请用日线周期"
+      ]
+    },
+    {
+      "type": "VOLUME_POC",
+      "name": "成交密集区",
+      "category": "支撑阻力",
+      "params": [
+        {
+          "key": "bars",
+          "default": 120,
+          "kind": "int",
+          "description": "统计多少根。"
+        },
+        {
+          "key": "bins",
+          "default": 24,
+          "kind": "int",
+          "description": "把回看区间的价格范围分成几档。"
+        }
+      ],
+      "compact": [
+        "bars=120",
+        "bins=24"
+      ],
+      "summary": "前 N 根（含当根）按价格分箱累计成交量，量最大那一箱的中点价。",
+      "pitfalls": [
+        "按 K 线高低区间均摊成交量，是近似的筹码分布。",
+        "输出是价格（与主序列同一复权口径）；算不出时为空，比较条件不成立。",
+        "配合规则节点 TOUCH / BREAK / RECLAIM / RETEST 使用：{\"type\":\"BREAK\",\"level\":{\"ind\":\"名字\"}}。"
+      ]
+    },
+    {
+      "type": "ROUND_LEVEL_ABOVE",
+      "name": "上方整数关口",
+      "category": "支撑阻力",
+      "params": [
+        {
+          "key": "step",
+          "default": 0,
+          "kind": "double",
+          "description": "0＝按价格量级自动（个位价 1 元、十位价 10 元……）。"
+        }
+      ],
+      "compact": [
+        "step=0"
+      ],
+      "summary": "上一根收盘之上最近的 step 整数倍（锚在上一根，当根突破时关口不跟着跳）。step=0 按价格量级自动（9.95 → 10 元关口）。",
+      "pitfalls": [
+        "输出是价格（与主序列同一复权口径）；算不出时为空，比较条件不成立。",
+        "配合规则节点 TOUCH / BREAK / RECLAIM / RETEST 使用：{\"type\":\"BREAK\",\"level\":{\"ind\":\"名字\"}}。"
+      ]
+    },
+    {
+      "type": "ROUND_LEVEL_BELOW",
+      "name": "下方整数关口",
+      "category": "支撑阻力",
+      "params": [
+        {
+          "key": "step",
+          "default": 0,
+          "kind": "double",
+          "description": "0＝按价格量级自动。"
+        }
+      ],
+      "compact": [
+        "step=0"
+      ],
+      "summary": "上一根收盘之下最近的 step 整数倍。",
+      "pitfalls": [
+        "输出是价格（与主序列同一复权口径）；算不出时为空，比较条件不成立。",
+        "配合规则节点 TOUCH / BREAK / RECLAIM / RETEST 使用：{\"type\":\"BREAK\",\"level\":{\"ind\":\"名字\"}}。"
+      ]
+    },
+    {
+      "type": "PIVOT_PP",
+      "name": "枢轴点 · PP",
+      "category": "支撑阻力",
+      "params": [],
+      "compact": [],
+      "summary": "昨日枢轴点：中枢",
+      "pitfalls": [
+        "用的是上一根 K 线，日线上就是昨日"
+      ]
+    },
+    {
+      "type": "PIVOT_R1",
+      "name": "枢轴点 · R1",
+      "category": "支撑阻力",
+      "params": [],
+      "compact": [],
+      "summary": "昨日枢轴点：第一压力",
+      "pitfalls": [
+        "用的是上一根 K 线，日线上就是昨日"
+      ]
+    },
+    {
+      "type": "PIVOT_R2",
+      "name": "枢轴点 · R2",
+      "category": "支撑阻力",
+      "params": [],
+      "compact": [],
+      "summary": "昨日枢轴点：第二压力",
+      "pitfalls": [
+        "用的是上一根 K 线，日线上就是昨日"
+      ]
+    },
+    {
+      "type": "PIVOT_R3",
+      "name": "枢轴点 · R3",
+      "category": "支撑阻力",
+      "params": [],
+      "compact": [],
+      "summary": "昨日枢轴点：第三压力",
+      "pitfalls": [
+        "用的是上一根 K 线，日线上就是昨日"
+      ]
+    },
+    {
+      "type": "PIVOT_S1",
+      "name": "枢轴点 · S1",
+      "category": "支撑阻力",
+      "params": [],
+      "compact": [],
+      "summary": "昨日枢轴点：第一支撑",
+      "pitfalls": [
+        "用的是上一根 K 线，日线上就是昨日"
+      ]
+    },
+    {
+      "type": "PIVOT_S2",
+      "name": "枢轴点 · S2",
+      "category": "支撑阻力",
+      "params": [],
+      "compact": [],
+      "summary": "昨日枢轴点：第二支撑",
+      "pitfalls": [
+        "用的是上一根 K 线，日线上就是昨日"
+      ]
+    },
+    {
+      "type": "PIVOT_S3",
+      "name": "枢轴点 · S3",
+      "category": "支撑阻力",
+      "params": [],
+      "compact": [],
+      "summary": "昨日枢轴点：第三支撑",
+      "pitfalls": [
+        "用的是上一根 K 线，日线上就是昨日"
+      ]
+    }
+  ]
+}

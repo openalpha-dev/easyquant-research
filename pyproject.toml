@@ -1,0 +1,63 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "easyquant-research"
+dynamic = ["version"]
+description = "Open-source MCP connector and Agent Skills for the EasyQuant historical research engine: screen, backtest and factor-check A-shares, ETFs, US/HK equities and futures. Research only — no order placement."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+authors = [{ name = "EasyQuant contributors" }]
+keywords = [
+  "quant", "quantitative-trading", "quantitative-research", "quantitative-finance",
+  "algorithmic-trading", "systematic-trading", "backtest", "backtesting", "stock-screener",
+  "stock-screening", "factor", "factor-investing", "factor-research", "alpha", "technical-analysis",
+  "technical-indicators", "trading-strategy", "strategy-dsl", "timing", "portfolio", "momentum",
+  "point-in-time", "mcp", "model-context-protocol", "ai-agent", "llm", "claude", "cursor",
+  "agent-skills", "python", "a-share", "etf", "futures", "us-equities", "hk-stocks", "alphaspec",
+  "fintech", "paper-trading",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Financial and Insurance Industry",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Topic :: Office/Business :: Financial :: Investment",
+]
+dependencies = [
+  "jsonschema>=4.18",
+  "certifi>=2023.7.22",
+]
+
+[project.urls]
+Homepage = "https://www.goeasyquant.com"
+Repository = "https://github.com/openalpha-dev/easyquant-research"
+Runtime = "https://trade.goeasyquant.com"
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.2"]
+dev = ["pytest>=7", "mcp>=1.2"]
+
+[project.scripts]
+easyquant-research = "easyquant_research.cli:main"
+easyquant-research-mcp = "easyquant_research.mcp_server:main"
+
+[tool.hatch.version]
+path = "src/easyquant_research/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/easyquant_research"]
+
+# catalog/, examples/, docs/ and skills/ stay at the repo root so non-Python runtimes and
+# `npx skills add` can consume them directly; the wheel carries a copy under
+# easyquant_research/_data so an installed Agent Skill can reach everything through the CLI.
+[tool.hatch.build.targets.wheel.force-include]
+"catalog" = "easyquant_research/_data/catalog"
+"examples" = "easyquant_research/_data/examples"
+"docs" = "easyquant_research/_data/docs"
+"skills" = "easyquant_research/_data/skills"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

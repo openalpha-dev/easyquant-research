@@ -1,0 +1,20 @@
+{
+  "how": "indicators 是「名字 → 指标定义」，规则里用 {\"ind\": \"名字\"} 引用；常量写 {\"const\": 30}（不能直接写数字）；收盘价等价格用 {\"type\": \"PRICE\", \"field\": \"CLOSE\"} 定义成指标再引用；四则运算写 {\"op\": \"SUB\", \"left\": ..., \"right\": ...}（ADD / SUB / MUL / DIV）。日线回测：收盘出信号、次日开盘成交，满足入场条件即全仓买入，满足出场条件或止盈止损即全部卖出。",
+  "rule_nodes": {
+    "逻辑": "AND / OR 是二元节点（字段 left、right，三个条件要嵌套两层）；NOT（字段 rule）",
+    "比较": "GT / LT / GTE / LTE / EQ / NEQ（字段 left、right）",
+    "穿越": "CROSS_UP / CROSS_DOWN（字段 left、right）"
+  },
+  "operands": {
+    "ind": "{\"ind\": \"名字\"}：引用 indicators 里定义的指标别名",
+    "const": "{\"const\": 30}：常量，规则里不能直接写裸数字",
+    "price": "价格先用 {\"type\": \"PRICE\", \"field\": \"CLOSE\"} 定义成指标（field 可取 OPEN/HIGH/LOW/CLOSE），再用 {\"ind\": ...} 引用",
+    "arith": "{\"op\": \"SUB\", \"left\": ..., \"right\": ...}：四则运算 ADD / SUB / MUL / DIV，left/right 仍是操作数"
+  },
+  "example": {
+    "indicators": { "fast": { "type": "SMA", "period": 20 }, "slow": { "type": "SMA", "period": 60 } },
+    "entry": { "type": "CROSS_UP", "left": { "ind": "fast" }, "right": { "ind": "slow" } },
+    "exit": { "type": "CROSS_DOWN", "left": { "ind": "fast" }, "right": { "ind": "slow" } }
+  },
+  "indicators_note": "日线可用的指标类型与参数见 indicators.json（由后端 dsl/indicator-metadata.json 过滤日内/L2/停用/B_ONLY 后导出）；拿不准就查 search_indicators / get_indicator，或运行时 catalog 的 timing_rules.indicators。"
+}

@@ -1,0 +1,14 @@
+{
+  "tool": "backtest_timing",
+  "title": "贵州茅台 20/60 日均线金叉做多、死叉平仓，止损 8%",
+  "arguments": {
+    "code": "600519.SH",
+    "indicators": {
+      "fast": { "type": "SMA", "period": 20 },
+      "slow": { "type": "SMA", "period": 60 }
+    },
+    "entry": { "type": "CROSS_UP", "left": { "ind": "fast" }, "right": { "ind": "slow" } },
+    "exit": { "type": "CROSS_DOWN", "left": { "ind": "fast" }, "right": { "ind": "slow" } },
+    "exits": { "stopLossPct": 8 }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "tool": "factor_report",
+  "title": "盈利收益率因子体检：净利润 TTM / 总市值，3 年窗口",
+  "arguments": {
+    "expression": "incttm_n_income_attr_p / (total_mv * 1e4)",
+    "window_years": 3
+  }
+}

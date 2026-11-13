@@ -1,0 +1,72 @@
+{
+  "how": "表达式对每只股票、每个交易日算出一个值。条件：非 0 即入选；排序：按数值排。「且」用 *，「或」用 MAX(a, b)，条件分支用 IF(条件, 值1, 值2)。字段名小写、函数名大写；不支持字符串、下标、属性访问和横截面 RANK。全局因子（Barra 风格与本土因子）写 gf_<代码小写>（原值）或 gfpct_<代码小写>（当天全市场百分位 0~1）；★ 本土因子（龙虎榜、涨停、资金流、形态命中等）只存当天前 200 或命中的股票，没进榜是空值，适合当条件（如 gf_lhb_net_buy_5d > 0），不适合在全市场排序。",
+  "markets": {
+    "cn_stock": {
+      "name": "A 股",
+      "fields": [
+        { "group": "价量", "names": "open high low close volume", "note": "已前复权；volume 单位手" },
+        { "group": "价量", "names": "amount", "note": "成交额，元" },
+        { "group": "价量", "names": "raw_open raw_high raw_low raw_close raw_volume", "note": "不复权原值；「股价低于 10 元」用 raw_close" },
+        { "group": "估值", "names": "pe pe_ttm pb ps ps_ttm", "note": "倍；亏损公司 pe / pe_ttm 为空，低估值条件要加 pe_ttm > 0" },
+        { "group": "股息", "names": "dv_ratio dv_ttm", "note": "股息率 %，3 表示 3%" },
+        { "group": "市值股本", "names": "total_mv circ_mv", "note": "万元：100 亿元写 1e6" },
+        { "group": "市值股本", "names": "total_share float_share free_share", "note": "万股" },
+        { "group": "交易", "names": "turnover_rate turnover_rate_f volume_ratio", "note": "换手率 %，量比倍数" },
+        { "group": "财务指标", "names": "roe_yearly roa_yearly roic_yearly grossprofit_margin netprofit_margin debt_to_assets current_ratio quick_ratio netprofit_yoy or_yoy tr_yoy q_roe q_netprofit_yoy q_sales_yoy eps bps cfps", "note": "比率类为 %。★ roe 是报告期累计值，一季报只含一个季度，按年比较用 roe_yearly" },
+        { "group": "利润表", "names": "inc_<科目> / incq_<科目> / incttm_<科目>，例如 incttm_n_income_attr_p、incq_revenue", "note": "年初累计 / 单季 / 近四季合计（TTM），元；科目沿用 Tushare income 表字段名" },
+        { "group": "资产负债表", "names": "bs_<科目>，例如 bs_total_assets、bs_money_cap", "note": "期末值，元" },
+        { "group": "现金流量表", "names": "cf_<科目> / cfq_<科目> / cfttm_<科目>，例如 cfttm_n_cashflow_act", "note": "同利润表口径" },
+        { "group": "过滤", "names": "nonfin", "note": "非金融公司为 1，银行、保险、证券为空；乘上它剔除金融股" },
+        { "group": "指数", "names": "bench_close sh_close（及 _open/_high/_low/_vol/_amount）", "note": "沪深 300 / 上证指数，所有股票同一条序列" },
+        { "group": "派生", "names": "ret1", "note": "当日涨跌幅（比例）" }
+      ]
+    },
+    "cn_etf": {
+      "name": "场内 ETF",
+      "fields": [
+        { "group": "价量", "names": "open high low close volume", "note": "已前复权；volume 单位手" },
+        { "group": "价量", "names": "amount", "note": "成交额，元：日均成交额 1 亿元以上写 MA(amount, 20) > 1e8" },
+        { "group": "价量", "names": "raw_open raw_high raw_low raw_close raw_volume", "note": "不复权原值" },
+        { "group": "份额规模", "names": "fund_share", "note": "基金份额，万份；份额变化率如 fund_share / REF(fund_share, 20) - 1 反映申赎资金流向" },
+        { "group": "份额规模", "names": "scale", "note": "基金规模（份额 × 收盘价），元：规模 2 亿元以上写 scale > 2e8" },
+        { "group": "指数", "names": "bench_close sh_close（及 _open/_high/_low/_vol/_amount）", "note": "沪深 300 / 上证指数" },
+        { "group": "派生", "names": "ret1", "note": "当日涨跌幅（比例）" }
+      ],
+      "not_available": "估值、股息、市值、财务、全局因子（gf_ / gfpct_）都是股票数据，ETF 上不能用；规模用 scale"
+    },
+    "us_equity": {
+      "name": "美股",
+      "fields": [
+        { "group": "价量", "names": "open high low close volume", "note": "已前复权（拆股、分红）；volume 单位股" },
+        { "group": "价量", "names": "amount", "note": "成交额，美元：日均 5000 万写 MA(amount, 20) > 5e7" },
+        { "group": "价量", "names": "raw_open raw_high raw_low raw_close raw_volume", "note": "不复权原值" },
+        { "group": "派生", "names": "ret1", "note": "当日涨跌幅（比例）" }
+      ],
+      "not_available": "估值、财务、全局因子（gf_ / gfpct_）、A 股指数字段（bench_ / sh_）"
+    },
+    "hk_stock": {
+      "name": "港股",
+      "fields": [
+        { "group": "价量", "names": "open high low close volume", "note": "已前复权（拆股、分红）；volume 单位股" },
+        { "group": "价量", "names": "amount", "note": "成交额，港元：日均 5000 万写 MA(amount, 20) > 5e7" },
+        { "group": "价量", "names": "raw_open raw_high raw_low raw_close raw_volume", "note": "不复权原值" },
+        { "group": "派生", "names": "ret1", "note": "当日涨跌幅（比例）" }
+      ],
+      "not_available": "估值、财务、全局因子（gf_ / gfpct_）、A 股指数字段（bench_ / sh_）"
+    },
+    "cn_future": {
+      "name": "期货",
+      "fields": [
+        { "group": "价量", "names": "open high low close volume", "note": "主力连续，已换月前复权；volume 单位手" },
+        { "group": "价量", "names": "amount", "note": "成交额，元：日均 50 亿元写 MA(amount, 20) > 5e9" },
+        { "group": "派生", "names": "ret1", "note": "当日涨跌幅（比例）" }
+      ],
+      "not_available": "估值、财务、全局因子；只有价量字段。品种列表见运行时 catalog 的 markets[cn_future].varieties"
+    }
+  },
+  "global_factors": {
+    "how": "gf_<代码小写> 取原值，gfpct_<代码小写> 取当天全市场百分位（0~1）。",
+    "note": "本土因子（龙虎榜、涨停、资金流、形态命中等）只存当天前 200 或命中的股票，没进榜是空值，适合当条件，不适合在全市场排序。",
+    "live": "完整可用因子列表、分类与套餐锁定随用户而变，见运行时 catalog 的 expression.global_factors；本离线目录不写死因子清单。"
+  }
+}

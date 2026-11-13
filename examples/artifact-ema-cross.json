@@ -1,0 +1,28 @@
+{
+  "tool": "submit_artifact",
+  "title": "AlphaSpec 研究草稿：A 股日线 EMA 20/60 交叉（指定标的）。提交前先调 research_capabilities 确认能力与窗口",
+  "arguments": {
+    "document": {
+      "contractVersion": "0.2",
+      "kind": "artifact",
+      "title": "EMA 20/60 cross on two A-share names (research draft)",
+      "market": "cn_stock",
+      "timeframe": "1d",
+      "dsl": {
+        "version": 1,
+        "params": { "fastPeriod": 20, "slowPeriod": 60 },
+        "indicators": {
+          "fast": { "type": "EMA", "period": { "ref": "fastPeriod" } },
+          "slow": { "type": "EMA", "period": { "ref": "slowPeriod" } }
+        },
+        "entry": { "type": "CROSS_UP", "left": { "ind": "fast" }, "right": { "ind": "slow" } },
+        "exit": { "type": "CROSS_DOWN", "left": { "ind": "fast" }, "right": { "ind": "slow" } }
+      },
+      "universe": { "mode": "SYMBOLS", "symbols": ["600519.SH", "000858.SZ"] },
+      "sizing": { "positionMode": "FIXED_PCT", "targetPctPerOrder": 50, "maxHoldings": 2 },
+      "execution": { "fillTiming": "NEXT_OPEN" },
+      "riskProfile": { "maxSymbolExposurePct": 50, "maxTotalExposurePct": 100 },
+      "producer": { "kind": "AI_AGENT", "name": "easyquant-research@example", "searchTrials": 1 }
+    }
+  }
+}

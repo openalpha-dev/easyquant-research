@@ -1,0 +1,13 @@
+{
+  "tool": "backtest_portfolio",
+  "title": "场内 ETF：日均成交额 1 亿以上、近 20 日涨幅前 5，月度调仓",
+  "arguments": {
+    "market": "cn_etf",
+    "condition": "MA(amount, 20) > 1e8",
+    "rank_by": "close / REF(close, 20) - 1",
+    "rank_order": "desc",
+    "top_n": 5,
+    "rebalance": "monthly",
+    "weighting": "equal"
+  }
+}

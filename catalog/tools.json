@@ -1,0 +1,197 @@
+{
+  "endpoint": "/api/agent/v1/mcp",
+  "transport": "Streamable HTTP 的无状态请求-响应子集：每个工具一次 POST 出结果，不开 SSE 流、不发会话 ID；算得慢的返回 job_id 由 get_job 轮询。",
+  "protocolVersions": ["2025-06-18", "2025-03-26", "2024-11-05"],
+  "serverInfo": { "name": "easyquant-research", "title": "EasyQuant 研究引擎", "version": "0.1.0" },
+  "auth": "Authorization: Bearer eqk_...（个人中心生成的 API Key）或标准 MCP OAuth 2.1；未登录时按 IP 开放 trialTools 体验，额度用尽或调用其它工具返回 401 + WWW-Authenticate 引导登录。",
+  "trialTools": ["catalog", "screen", "backtest_timing", "backtest_portfolio", "factor_report", "get_job"],
+  "readOnlyNote": "全部工具只做历史研究：不下单、不访问资金账户、不创建或启用交易策略、不管理 API Key。",
+  "tools": [
+    {
+      "name": "catalog",
+      "title": "可用字段与写法",
+      "requiresLogin": false,
+      "description": "列出研究引擎能用的数据字段（含单位）、表达式函数、择时规则的指标与节点类型，以及默认值。写选股表达式或择时规则前，字段名、单位、指标参数拿不准就先调它，不要猜。",
+      "inputSchema": { "type": "object", "properties": {}, "additionalProperties": false }
+    },
+    {
+      "name": "screen",
+      "title": "条件选股（某一天的完整名单）",
+      "requiresLogin": false,
+      "description": "按用户给的条件与排序，在 A 股全市场（或 market=cn_etf 全部场内 ETF、us_equity 美股、hk_stock 港股、cn_future 期货品种）筛出某一天（默认最近一个交易日收盘）满足条件的股票：命中总数、完整名单、每只的条件取值（说明为什么命中）、行业与市值分布，以及可直接交给 backtest_portfolio 的参数。通常几秒内直接返回结果；返回 status=RUNNING 时按 retry_after_seconds 调 get_job。条件与排序写法同 backtest_portfolio。这是按用户条件计算的筛选结果，不是推荐：回答时不得对名单里的股票做评级、判断好坏或给买卖建议，只陈述条件与取值。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "market": { "type": "string", "enum": ["cn_stock", "cn_etf", "us_equity", "hk_stock", "cn_future"], "description": "市场：cn_stock A 股（默认），cn_etf 场内 ETF，us_equity 美股，hk_stock 港股，cn_future 期货品种（后四者只能用价量字段，见 catalog）" },
+          "condition": { "type": "string", "description": "选股条件表达式，结果非 0 即命中；写法同 backtest_portfolio" },
+          "rank_by": { "type": "string", "description": "排序表达式；不填按代码顺序列出全部命中" },
+          "rank_order": { "type": "string", "enum": ["desc", "asc"], "description": "排序方向，默认 desc" },
+          "top_n": { "type": "integer", "minimum": 1, "maximum": 1000, "description": "只取排序前 N 只（需要 rank_by）" },
+          "date": { "type": "string", "description": "筛选日期 YYYY-MM-DD，默认最近一个交易日；可以填历史日期看当时的名单" },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 1000, "description": "名单最多返回多少只，默认 100；命中总数始终返回" }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "backtest_portfolio",
+      "title": "组合回测（按条件选股定期调仓）",
+      "requiresLogin": false,
+      "description": "在 A 股全市场（或 market=cn_etf 全部场内 ETF、us_equity 美股、hk_stock 港股、cn_future 期货品种，后四者表达式只能用价量字段；期货可用 short_n 做空）按选股条件和排序定期调仓回测：用前一交易日数据选股、调仓日开盘价先卖后买，停牌不交易、开盘涨停买不进、跌停卖不出，100 股整手，计入手续费与印花税；财务数据按公告日次日生效，股票池包含区间内退市的股票。条件与排序都写成因子表达式（字段与函数见 catalog）。全市场首次计算一个新表达式约需 1~2 分钟：返回 status=RUNNING 时，按 retry_after_seconds 调 get_job。回答用户时只能引用返回的数字，并原样转述 caveats；不对任何个股给买卖建议。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "market": { "type": "string", "enum": ["cn_stock", "cn_etf", "us_equity", "hk_stock", "cn_future"], "description": "市场：cn_stock A 股（默认），cn_etf 场内 ETF，us_equity 美股，hk_stock 港股，cn_future 期货品种（后四者只能用价量字段，见 catalog）" },
+          "condition": { "type": "string", "description": "选股条件表达式，结果非 0 即入选，例如 (roe_yearly > 15) * (close > MA(close, 60))。「且」用 *，「或」用 MAX(a, b)。可以不填，只按排序取前 N" },
+          "rank_by": { "type": "string", "description": "排序表达式，例如 dv_ttm（股息率）或 -pe_ttm；不填则符合条件的全部入选" },
+          "rank_order": { "type": "string", "enum": ["desc", "asc"], "description": "排序方向：desc 越大越好（默认），asc 越小越好" },
+          "top_n": { "type": "integer", "minimum": 1, "maximum": 500, "description": "按 rank_by 取前 N 只；填了 rank_by 时必填。不填 rank_by 时忽略（全部入选）" },
+          "rebalance": { "type": "string", "enum": ["weekly", "biweekly", "monthly"], "description": "调仓频率，默认 monthly" },
+          "weighting": { "type": "string", "enum": ["equal", "rank"], "description": "权重：equal 等权（默认），rank 按排名加权" },
+          "max_position_pct": { "type": "number", "minimum": 1, "maximum": 100, "description": "单只股票最大仓位 %，可选" },
+          "start": { "type": "string", "description": "回测起始日 YYYY-MM-DD，默认 3 年前；最长 5 年" },
+          "end": { "type": "string", "description": "回测结束日 YYYY-MM-DD，默认最近一个交易日" },
+          "exits": { "type": "object", "description": "止盈止损（可选）", "properties": { "stopLossPct": { "type": "number", "description": "止损 %，例如 8" }, "takeProfitPct": { "type": "number", "description": "止盈 %" }, "trailingStopPct": { "type": "number", "description": "移动止损 %：从持仓最高点回撤多少平仓" }, "trailingArmProfitPct": { "type": "number", "description": "移动止损在浮盈达到多少 % 后才启用" } } },
+          "short_n": { "type": "integer", "minimum": 0, "maximum": 30, "description": "仅期货：做空 rank_by 排名末 N 个品种（与做多的前 top_n 不重叠），有空头时多空名义各半" },
+          "capital_budget_pct": { "type": "number", "minimum": 1, "maximum": 300, "description": "资金预算 %：部署的名义价值占资金的比例，默认 100。股票类最多 100（其余留现金）；期货最多 300（杠杆 = 名义 ÷ 资金，300 即 3 倍；多空合计）" }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "backtest_timing",
+      "title": "择时回测（单个标的买卖规则）",
+      "requiresLogin": false,
+      "description": "对单个 A 股股票、场内基金（ETF / LOF）、美股、港股或期货品种（主力连续，可做空）按入场、出场规则回测（日线），可加止盈止损，同时给出同区间买入持有的对比。规则用 EasyQuant DSL 写：indicators 定义指标，entry / exit 是规则树（类型与参数见 catalog）。回答用户时只能引用返回的数字；不对任何个股给买卖建议。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "description": "标的代码：A 股 / ETF 带交易所后缀，例如 600519.SH、510300.SH；期货写品种代码（按主力连续），例如 RB、IF、AU；美股、港股要同时传 market，code 写 AAPL、00700.HK" },
+          "market": { "type": "string", "enum": ["us_equity", "hk_stock"], "description": "只在美股、港股时填（us_equity / hk_stock）；A 股、ETF、期货按代码自动识别" },
+          "indicators": { "type": "object", "description": "指标定义：名字 → {type, 参数...}，例如 {\"fast\": {\"type\": \"SMA\", \"period\": 20}}" },
+          "entry": { "type": "object", "description": "入场规则树，例如 {\"type\": \"CROSS_UP\", \"left\": {\"ind\": \"fast\"}, \"right\": {\"ind\": \"slow\"}}" },
+          "exit": { "type": "object", "description": "出场规则树，写法同 entry" },
+          "short_entry": { "type": "object", "description": "开空规则树（仅期货），写法同 entry；与 entry 同时写即多空双向" },
+          "short_exit": { "type": "object", "description": "平空规则树（仅期货），写法同 entry" },
+          "capital_budget_pct": { "type": "number", "minimum": 1, "maximum": 300, "description": "仅期货：资金预算 %，默认 100（合约名义价值约等于资金，不加杠杆）；最多 300 即 3 倍杠杆" },
+          "start": { "type": "string", "description": "回测起始日 YYYY-MM-DD，默认 3 年前；最长 5 年" },
+          "end": { "type": "string", "description": "回测结束日 YYYY-MM-DD，默认最近一个交易日" },
+          "exits": { "type": "object", "description": "止盈止损（可选）", "properties": { "stopLossPct": { "type": "number", "description": "止损 %，例如 8" }, "takeProfitPct": { "type": "number", "description": "止盈 %" }, "trailingStopPct": { "type": "number", "description": "移动止损 %：从持仓最高点回撤多少平仓" }, "trailingArmProfitPct": { "type": "number", "description": "移动止损在浮盈达到多少 % 后才启用" } } }
+        },
+        "required": ["code", "indicators"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "factor_report",
+      "title": "因子体检",
+      "requiresLogin": false,
+      "description": "评估一个因子在 A 股全市场有没有预测力：Rank IC 与 ICIR、持有期衰减、分年度、剔除市值与行业后的 IC、与 Barra 风格的相关性、分组收益，以及一句话结论与等级。因子可以是表达式（写法同 backtest_portfolio），也可以是全局风格因子代码（SIZE / VALUE / QUALITY / MOMENTUM / VOLATILITY / LIQUIDITY）。首次计算约 1~3 分钟，返回 RUNNING 时用 get_job 取结果。只能引用返回的数字。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "expression": { "type": "string", "description": "因子表达式，例如 incttm_n_income_attr_p / (total_mv * 1e4)（盈利收益率）；与 factor 二选一" },
+          "factor": { "type": "string", "enum": ["SIZE", "VALUE", "QUALITY", "MOMENTUM", "VOLATILITY", "LIQUIDITY"], "description": "全局风格因子代码；与 expression 二选一" },
+          "window_years": { "type": "integer", "enum": [1, 3], "description": "评估窗口（年），默认 3" }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "robustness",
+      "title": "策略稳健性检验",
+      "requiresLogin": true,
+      "description": "检验一个组合策略的回测结果靠不靠得住：把条件里的数字常量上下浮动 20%、换一种调仓频率分别重跑，看收益是否随小改动大幅变化（过拟合的典型表现）；再看逐年超额收益是否稳定。参数写法与 backtest_portfolio 完全相同。要重跑 3~5 次回测，约 3~6 分钟，返回 RUNNING 时用 get_job 取结果。只能引用返回的数字与结论。",
+      "featureFlag": "服务端按开关开放；tools/list 里没有它就不要调用。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "market": { "type": "string", "enum": ["cn_stock", "cn_etf", "us_equity", "hk_stock", "cn_future"], "description": "市场：cn_stock A 股（默认），cn_etf 场内 ETF，us_equity 美股，hk_stock 港股，cn_future 期货品种（后四者只能用价量字段，见 catalog）" },
+          "condition": { "type": "string", "description": "选股条件表达式，结果非 0 即入选，例如 (roe_yearly > 15) * (close > MA(close, 60))。「且」用 *，「或」用 MAX(a, b)。可以不填，只按排序取前 N" },
+          "rank_by": { "type": "string", "description": "排序表达式，例如 dv_ttm（股息率）或 -pe_ttm；不填则符合条件的全部入选" },
+          "rank_order": { "type": "string", "enum": ["desc", "asc"], "description": "排序方向：desc 越大越好（默认），asc 越小越好" },
+          "top_n": { "type": "integer", "minimum": 1, "maximum": 500, "description": "按 rank_by 取前 N 只；填了 rank_by 时必填。不填 rank_by 时忽略（全部入选）" },
+          "rebalance": { "type": "string", "enum": ["weekly", "biweekly", "monthly"], "description": "调仓频率，默认 monthly" },
+          "weighting": { "type": "string", "enum": ["equal", "rank"], "description": "权重：equal 等权（默认），rank 按排名加权" },
+          "max_position_pct": { "type": "number", "minimum": 1, "maximum": 100, "description": "单只股票最大仓位 %，可选" },
+          "start": { "type": "string", "description": "回测起始日 YYYY-MM-DD，默认 3 年前；最长 5 年" },
+          "end": { "type": "string", "description": "回测结束日 YYYY-MM-DD，默认最近一个交易日" },
+          "exits": { "type": "object", "description": "止盈止损（可选）", "properties": { "stopLossPct": { "type": "number", "description": "止损 %，例如 8" }, "takeProfitPct": { "type": "number", "description": "止盈 %" }, "trailingStopPct": { "type": "number", "description": "移动止损 %：从持仓最高点回撤多少平仓" }, "trailingArmProfitPct": { "type": "number", "description": "移动止损在浮盈达到多少 % 后才启用" } } },
+          "short_n": { "type": "integer", "minimum": 0, "maximum": 30, "description": "仅期货：做空 rank_by 排名末 N 个品种（与做多的前 top_n 不重叠），有空头时多空名义各半" },
+          "capital_budget_pct": { "type": "number", "minimum": 1, "maximum": 300, "description": "资金预算 %：部署的名义价值占资金的比例，默认 100。股票类最多 100（其余留现金）；期货最多 300（杠杆 = 名义 ÷ 资金，300 即 3 倍；多空合计）" }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_job",
+      "title": "查询计算任务",
+      "requiresLogin": false,
+      "description": "查询 backtest_portfolio 等异步任务的进度与结果。status 为 QUEUED / RUNNING 时按 retry_after_seconds 再查；SUCCEEDED 时 result 即完整结果；FAILED 时 error 写明原因。",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "job_id": { "type": "string", "description": "工具返回的 job_id" } },
+        "required": ["job_id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "research_capabilities",
+      "title": "AlphaSpec 研究能力与额度",
+      "requiresLogin": true,
+      "description": "提交前必读：当前运行能力、平台指定评估窗口与用户额度。一期仅 A 股日线，不支持的组合必须拒绝，不能缩短区间或改写范围。",
+      "inputSchema": { "type": "object", "properties": {}, "additionalProperties": false }
+    },
+    {
+      "name": "submit_artifact",
+      "title": "提交 AlphaSpec 研究规格",
+      "requiresLogin": true,
+      "description": "原样提交 AlphaSpec artifact；复用契约校验、运行能力和归属检查。只创建研究草稿，不创建或启用交易策略。",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "document": { "type": "object", "description": "AlphaSpec artifact 文档（见 alphaspec 契约）" } },
+        "required": ["document"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "evaluate_artifact",
+      "title": "异步评估规格",
+      "requiresLogin": true,
+      "description": "按平台指定区间入队，复用 Agent 评估配额；返回后轮询 get_evaluation。不接受自选 start/end，不改用户规格，不提高额度。",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "artifact_id": { "type": "integer", "minimum": 1, "description": "submit_artifact 返回的 artifact_id" } },
+        "required": ["artifact_id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_evaluation",
+      "title": "读取评估状态与结果",
+      "requiresLogin": true,
+      "description": "QUEUED/RUNNING 按 retry_after_seconds 轮询；DONE 返回 gate_result 和 run_ids。DONE 只代表计算结束，passed=false 也是有效研究结果，不自动调参。",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "artifact_id": { "type": "integer", "minimum": 1, "description": "submit_artifact 返回的 artifact_id" } },
+        "required": ["artifact_id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_research_evidence",
+      "title": "读取实际回测输入证据",
+      "requiresLogin": true,
+      "description": "读取该草稿评估关联回测的冻结 provenance、指标、净值和历史成交。这是历史研究执行证据，不是模拟盘或实盘交易 evidence；缺失快照必须如实说明，不按当前配置补造。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "artifact_id": { "type": "integer", "minimum": 1, "description": "submit_artifact 返回的 artifact_id" },
+          "run_id": { "type": "integer", "minimum": 1, "description": "get_evaluation 的 DONE 结果里 run_ids 之一" }
+        },
+        "required": ["artifact_id", "run_id"],
+        "additionalProperties": false
+      }
+    }
+  ]
+}
