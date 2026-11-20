@@ -25,6 +25,8 @@ except ImportError:  # mcp 1.x
     from mcp.server.fastmcp import FastMCP as MCPServer  # type: ignore[no-redef]
     from mcp.server.fastmcp.exceptions import ToolError  # type: ignore[no-redef]
 
+from mcp.types import ToolAnnotations
+
 from . import __version__
 from . import reference as ref
 from ._resources import default_lang
@@ -39,6 +41,11 @@ AlphaSpec 规格先调 research_capabilities，再 submit_artifact → evaluate_
 回答只能引用工具返回的数字并原样转述 caveats，不对个股给买卖建议。"""
 
 server = MCPServer("easyquant-research", instructions=INSTRUCTIONS, version=__version__)
+
+# MCP hints: research-only (never destructive, no order tool); offline=closed catalog, runtime=open engine.
+_OFFLINE = ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
+_RESEARCH = ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=True)
+_DRAFT = ToolAnnotations(read_only_hint=False, destructive_hint=False, idempotent_hint=False, open_world_hint=True)
 
 
 def _lang(lang: str) -> str:
@@ -76,7 +83,7 @@ def _offline(fn, *args, **kwargs):
 
 # ---------------------------------------------------------------- offline reference
 
-@server.tool()
+@server.tool(annotations=_OFFLINE)
 def search_fields(query: str = "", market: str = "") -> list[dict[str, Any]]:
     """Offline: data fields with units and pitfalls, per market. query matches group/names/note
     (English or Chinese, e.g. "估值", "roe", "成交额"); market restricts to cn_stock / cn_etf /
@@ -84,14 +91,14 @@ def search_fields(query: str = "", market: str = "") -> list[dict[str, Any]]:
     return _offline(ref.search_fields, query, market)
 
 
-@server.tool()
+@server.tool(annotations=_OFFLINE)
 def search_functions(query: str = "") -> list[dict[str, Any]]:
     """Offline: expression functions (MA, REF, STD, RSI, CROSS, IF, ...). query matches the
     signature or summary. Field names are lowercase, function names uppercase."""
     return _offline(ref.search_functions, query)
 
 
-@server.tool()
+@server.tool(annotations=_OFFLINE)
 def search_indicators(query: str = "", category: str = "") -> list[dict[str, Any]]:
     """Offline: timing DSL indicator types usable on daily bars (SMA, EMA, MACD, RSI, ATR, ...).
     query matches type/name/category/summary; category filters one category. Call get_indicator
@@ -99,14 +106,14 @@ def search_indicators(query: str = "", category: str = "") -> list[dict[str, Any
     return _offline(ref.search_indicators, query, category)
 
 
-@server.tool()
+@server.tool(annotations=_OFFLINE)
 def get_indicator(type: str) -> dict[str, Any]:
     """Offline: full entry for one timing DSL indicator type — parameter keys, defaults, kinds,
     descriptions, summary and pitfalls. type is e.g. SMA, MACD, ATR."""
     return _offline(ref.get_indicator, type)
 
 
-@server.tool()
+@server.tool(annotations=_OFFLINE)
 def get_rule_nodes() -> dict[str, Any]:
     """Offline: the timing DSL rule-tree reference — logic/comparison/cross nodes, operand forms
     ({"ind":...}, {"const":n}, PRICE, arithmetic), and a worked example. Constants are {"const":n},
@@ -114,13 +121,13 @@ def get_rule_nodes() -> dict[str, Any]:
     return _offline(ref.get_rule_nodes)
 
 
-@server.tool()
+@server.tool(annotations=_OFFLINE)
 def list_markets() -> list[dict[str, Any]]:
     """Offline: markets the engine researches (id, name, note, supported tools)."""
     return _offline(ref.list_markets)
 
 
-@server.tool()
+@server.tool(annotations=_OFFLINE)
 def get_market(market: str) -> dict[str, Any]:
     """Offline: one market's capability trading rules (long-only, limit-up/down fills, point-in-time
     financials, delisted names included), universe and examples. Numeric costs (commission, tax,
@@ -128,45 +135,45 @@ def get_market(market: str) -> dict[str, Any]:
     return _offline(ref.get_market, market)
 
 
-@server.tool()
+@server.tool(annotations=_OFFLINE)
 def list_examples() -> list[dict[str, Any]]:
     """Offline: bundled example requests (name, target tool, title) to start from."""
     return _offline(ref.list_examples)
 
 
-@server.tool()
+@server.tool(annotations=_OFFLINE)
 def get_example(name: str) -> dict[str, Any]:
     """Offline: one example request by name (a prefix is enough). It holds {tool, title, arguments}
     you can pass straight to the matching runtime tool."""
     return _offline(ref.get_example, name)
 
 
-@server.tool()
+@server.tool(annotations=_OFFLINE)
 def get_doc(name: str) -> str:
     """Offline: a reference document — expression, timing, markets, workflow, boundaries, runtime."""
     return _offline(ref.get_doc, name)
 
 
-@server.tool()
+@server.tool(annotations=_OFFLINE)
 def list_skills() -> list[str]:
     """Offline: names of the installable Agent Skills bundled in this package."""
     return _offline(ref.list_skills)
 
 
-@server.tool()
+@server.tool(annotations=_OFFLINE)
 def get_skill(name: str) -> str:
     """Offline: the full SKILL.md of one bundled Agent Skill (easyquant-research / easyquant-expression)."""
     return _offline(ref.get_skill, name)
 
 
-@server.tool()
+@server.tool(annotations=_OFFLINE)
 def list_research_tools() -> list[dict[str, Any]]:
     """Offline: the hosted research MCP tool contract (names, descriptions, input schemas, whether
     each requires login). Use it to see exact parameters before calling a runtime tool."""
     return _offline(ref.list_tools)
 
 
-@server.tool()
+@server.tool(annotations=_OFFLINE)
 def validate_arguments(tool: str, arguments: dict[str, Any]) -> dict[str, Any]:
     """Offline: check a runtime tool's arguments against its input schema (request shape only — not
     a strategy evaluation). Returns {ok, issues}. Fix every issue before calling the tool."""
@@ -176,7 +183,7 @@ def validate_arguments(tool: str, arguments: dict[str, Any]) -> dict[str, Any]:
 
 # ---------------------------------------------------------------- runtime bridge
 
-@server.tool()
+@server.tool(annotations=_RESEARCH)
 def catalog(lang: str = "") -> dict[str, Any]:
     """Runtime: the engine's live catalog — fields with units, functions, timing indicators, market
     trading rules, current data date, your daily quota and unlocked global factors. Call it before
@@ -184,7 +191,7 @@ def catalog(lang: str = "") -> dict[str, Any]:
     return _bridge("catalog", {}, lang)
 
 
-@server.tool()
+@server.tool(annotations=_RESEARCH)
 def screen(market: str = "", condition: str = "", rank_by: str = "", rank_order: str = "",
            top_n: int = 0, date: str = "", limit: int = 0, lang: str = "") -> dict[str, Any]:
     """Runtime: screen one day's full list of symbols matching a condition (default latest trading
@@ -195,7 +202,7 @@ def screen(market: str = "", condition: str = "", rank_by: str = "", rank_order:
     return _bridge("screen", args, lang)
 
 
-@server.tool()
+@server.tool(annotations=_RESEARCH)
 def backtest_portfolio(market: str = "", condition: str = "", rank_by: str = "", rank_order: str = "",
                        top_n: int = 0, rebalance: str = "", weighting: str = "", max_position_pct: float = 0,
                        start: str = "", end: str = "", exits: dict | None = None, short_n: int = 0,
@@ -211,7 +218,7 @@ def backtest_portfolio(market: str = "", condition: str = "", rank_by: str = "",
     return _bridge("backtest_portfolio", args, lang)
 
 
-@server.tool()
+@server.tool(annotations=_RESEARCH)
 def backtest_timing(code: str, indicators: dict, market: str = "", entry: dict | None = None,
                     exit: dict | None = None, short_entry: dict | None = None, short_exit: dict | None = None,
                     capital_budget_pct: float = 0, start: str = "", end: str = "",
@@ -225,7 +232,7 @@ def backtest_timing(code: str, indicators: dict, market: str = "", entry: dict |
     return _bridge("backtest_timing", args, lang)
 
 
-@server.tool()
+@server.tool(annotations=_RESEARCH)
 def factor_report(expression: str = "", factor: str = "", window_years: int = 0,
                   lang: str = "") -> dict[str, Any]:
     """Runtime: factor checkup on the A-share universe — Rank IC/ICIR, decay, yearly, neutralized IC,
@@ -235,7 +242,7 @@ def factor_report(expression: str = "", factor: str = "", window_years: int = 0,
     return _bridge("factor_report", args, lang)
 
 
-@server.tool()
+@server.tool(annotations=_RESEARCH)
 def robustness(market: str = "", condition: str = "", rank_by: str = "", rank_order: str = "",
                top_n: int = 0, rebalance: str = "", weighting: str = "", max_position_pct: float = 0,
                start: str = "", end: str = "", exits: dict | None = None, short_n: int = 0,
@@ -251,14 +258,14 @@ def robustness(market: str = "", condition: str = "", rank_by: str = "", rank_or
     return _bridge("robustness", args, lang)
 
 
-@server.tool()
+@server.tool(annotations=_RESEARCH)
 def get_job(job_id: str, lang: str = "") -> dict[str, Any]:
     """Runtime: poll an async job. QUEUED/RUNNING → wait retry_after_seconds and call again;
     SUCCEEDED → result is the full document; FAILED → error says why. lang en|zh."""
     return _bridge("get_job", {"job_id": job_id}, lang)
 
 
-@server.tool()
+@server.tool(annotations=_RESEARCH)
 def research_capabilities(lang: str = "") -> dict[str, Any]:
     """Runtime: read before submitting an AlphaSpec artifact — current capabilities, the platform's
     fixed evaluation windows and your quota. Phase 1 is A-share daily only; reject unsupported
@@ -266,28 +273,28 @@ def research_capabilities(lang: str = "") -> dict[str, Any]:
     return _bridge("research_capabilities", {}, lang)
 
 
-@server.tool()
+@server.tool(annotations=_DRAFT)
 def submit_artifact(document: dict, lang: str = "") -> dict[str, Any]:
     """Runtime: submit an AlphaSpec artifact as-is (contract validation, capability and ownership
     checks). Creates a research draft only — never a trading strategy. Returns artifact_id. lang en|zh."""
     return _bridge("submit_artifact", {"document": document}, lang)
 
 
-@server.tool()
+@server.tool(annotations=_DRAFT)
 def evaluate_artifact(artifact_id: int, lang: str = "") -> dict[str, Any]:
     """Runtime: queue an evaluation on the platform's fixed windows (uses your evaluation quota).
     Poll get_evaluation afterwards. Does not accept custom start/end or raise quota. lang en|zh."""
     return _bridge("evaluate_artifact", {"artifact_id": artifact_id}, lang)
 
 
-@server.tool()
+@server.tool(annotations=_RESEARCH)
 def get_evaluation(artifact_id: int, lang: str = "") -> dict[str, Any]:
     """Runtime: evaluation status/result. QUEUED/RUNNING → poll by retry_after_seconds; DONE → gate_result
     and run_ids. DONE only means the computation finished; passed=false is a valid result. lang en|zh."""
     return _bridge("get_evaluation", {"artifact_id": artifact_id}, lang)
 
 
-@server.tool()
+@server.tool(annotations=_RESEARCH)
 def get_research_evidence(artifact_id: int, run_id: int, lang: str = "") -> dict[str, Any]:
     """Runtime: the frozen provenance, metrics, equity curve and historical fills of the backtest a
     draft evaluation ran. This is historical research evidence, not paper/live trading evidence;
