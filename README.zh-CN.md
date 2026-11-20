@@ -1,5 +1,7 @@
 # EasyQuant Research
 
+[![M8ven Score](https://m8ven.ai/badge/mcp/openalpha-dev-easyquant-research-wvnejk?v=d1c293adcc46229d3a26c81265b52ebc)](https://m8ven.ai/mcp/openalpha-dev-easyquant-research-wvnejk?s=readme)
+
 **EasyQuant 量化研究引擎的开源 MCP 连接器与 Agent Skills——面向 AI 智能体的量化交易研究：条件选股、组合与择时回测、因子 / alpha 研究，覆盖 A 股、场内 ETF、美股、港股与期货。点时口径，Python，只做历史研究。**
 
 [English](README.md) ·

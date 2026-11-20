@@ -1,5 +1,7 @@
 # EasyQuant Research
 
+[![M8ven Score](https://m8ven.ai/badge/mcp/openalpha-dev-easyquant-research-wvnejk?v=d1c293adcc46229d3a26c81265b52ebc)](https://m8ven.ai/mcp/openalpha-dev-easyquant-research-wvnejk?s=readme)
+
 **Open-source MCP connector and Agent Skills for quantitative trading research on the EasyQuant engine — stock screening, portfolio & timing backtesting, and factor / alpha research across China A-shares, ETFs, US/HK equities and futures. Point-in-time, Python, research only.**
 
 [中文说明](README.zh-CN.md) ·
