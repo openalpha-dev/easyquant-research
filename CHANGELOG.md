@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1 — 2026-11-20
+
+- MCP server: declare tool annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`,
+  `openWorldHint`) on all 26 tools. Offline reference is closed-world read-only; runtime research is
+  open-world read-only; `submit_artifact` / `evaluate_artifact` are additive (non-destructive,
+  non-idempotent). No tool is destructive and there is no order tool. Meets the MCP annotation spec
+  and directory requirements (e.g. OpenAI's all-four-hints rule).
+- README: add the M8ven trust badge (English + 中文).
+
 ## 0.1.0 — 2026-11-13
 
 First open-source release of the EasyQuant research client. The engine and data stay hosted; this

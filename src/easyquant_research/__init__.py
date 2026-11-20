@@ -9,4 +9,4 @@ from ._resources import data_root, load_tools
 from .client import Client, ResearchError
 
 __all__ = ["Client", "ResearchError", "data_root", "load_tools"]
-__version__ = "0.1.0"
+__version__ = "0.1.1"
